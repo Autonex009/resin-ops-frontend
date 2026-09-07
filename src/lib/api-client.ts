@@ -144,11 +144,20 @@ export type BatchesParams = {
   stream?: string;
   status?: string;
   schedule?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
 };
 
-export type PaginatedBatches = { batches: Batch[]; total: number; page: number; pageSize: number };
+export type BatchesSummary = { total: number; behind: number; onTrack: number };
+
+export type PaginatedBatches = {
+  batches: Batch[];
+  total: number;
+  page: number;
+  pageSize: number;
+  summary: BatchesSummary;
+};
 
 function toSearchParams(params: Record<string, string | number | undefined>): string {
   const search = new URLSearchParams();
@@ -168,8 +177,16 @@ export type CommitmentsParams = {
   plant?: string;
   businessGroup?: string;
   status?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
+};
+
+export type CommitmentsSummary = {
+  total: number;
+  short: number;
+  onTrack: number;
+  totalBalanceValue: number;
 };
 
 export type PaginatedCommitments = {
@@ -178,6 +195,7 @@ export type PaginatedCommitments = {
   page: number;
   pageSize: number;
   businessGroups: string[];
+  summary: CommitmentsSummary;
 };
 
 export function getCommitments(params: CommitmentsParams = {}) {

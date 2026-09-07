@@ -1,7 +1,10 @@
-import { Database, ListChecks } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Database, ListChecks } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { BatchesFilterBar } from "@/components/batches-filter-bar";
+import { ActiveFilterChips, type FilterChip } from "@/components/active-filter-chips";
 import { DataPagination } from "@/components/data-pagination";
+import { KpiCard } from "@/components/kpi-card";
+import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -18,8 +21,10 @@ import {
   getBatches,
   getPlants,
   type Batch,
+  type BatchesSummary,
   type Plant,
 } from "@/lib/api-client";
+import { BATCH_SCHEDULES, BATCH_STATUSES, BATCH_STREAMS } from "@/lib/filter-options";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +57,7 @@ export default async function BatchesPage({
     stream?: string;
     status?: string;
     schedule?: string;
+    search?: string;
     page?: string;
   }>;
 }) {
@@ -70,21 +76,24 @@ export default async function BatchesPage({
   const stream = sp.stream ?? "all";
   const status = sp.status ?? "all";
   const schedule = sp.schedule ?? "all";
+  const search = sp.search?.trim() ?? "";
   const page = Math.max(1, Number(sp.page ?? "1"));
 
   let rows: Batch[] = [];
   let total = 0;
   let plantsList: Plant[] = [];
+  let summary: BatchesSummary = { total: 0, behind: 0, onTrack: 0 };
   let error: unknown = null;
 
   try {
     const [batchesResult, plants] = await Promise.all([
-      getBatches({ plant, stream, status, schedule, page, pageSize: PAGE_SIZE }),
+      getBatches({ plant, stream, status, schedule, search, page, pageSize: PAGE_SIZE }),
       getPlants(),
     ]);
     rows = batchesResult.batches;
     total = batchesResult.total;
     plantsList = plants;
+    summary = batchesResult.summary;
   } catch (e) {
     error = e;
   }
@@ -97,6 +106,27 @@ export default async function BatchesPage({
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  const chips: FilterChip[] = [];
+  if (plant !== "all") {
+    const p = plantsList.find((pl) => pl.code === plant);
+    chips.push({ key: "plant", label: p ? `${p.name} (${p.code})` : plant });
+  }
+  if (stream !== "all") {
+    chips.push({ key: "stream", label: BATCH_STREAMS.find((s) => s.value === stream)?.label ?? stream });
+  }
+  if (status !== "all") {
+    chips.push({ key: "status", label: BATCH_STATUSES.find((s) => s.value === status)?.label ?? status });
+  }
+  if (schedule !== "all") {
+    chips.push({
+      key: "schedule",
+      label: BATCH_SCHEDULES.find((s) => s.value === schedule)?.label ?? schedule,
+    });
+  }
+  if (search) {
+    chips.push({ key: "search", label: `"${search}"` });
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -106,13 +136,31 @@ export default async function BatchesPage({
           it&apos;s more than half a day past its planned completion.
         </p>
       </div>
-      <BatchesFilterBar
-        plants={plantsList}
-        plant={plant}
-        stream={stream}
-        status={status}
-        schedule={schedule}
-      />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <KpiCard title="Total Batches" value={summary.total.toLocaleString()} icon={ListChecks} />
+        <KpiCard
+          title="On Track"
+          value={summary.onTrack.toLocaleString()}
+          icon={CheckCircle2}
+        />
+        <KpiCard
+          title="Behind Schedule"
+          value={summary.behind.toLocaleString()}
+          icon={AlertTriangle}
+          tone={summary.behind > 0 ? "warning" : "default"}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <BatchesFilterBar
+          plants={plantsList}
+          plant={plant}
+          stream={stream}
+          status={status}
+          schedule={schedule}
+        />
+        <SearchInput placeholder="Search batch #..." />
+      </div>
+      <ActiveFilterChips chips={chips} />
       {rows.length === 0 ? (
         <EmptyState
           icon={ListChecks}
