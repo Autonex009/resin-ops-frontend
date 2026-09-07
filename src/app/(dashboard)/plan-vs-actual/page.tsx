@@ -1,4 +1,4 @@
-import { Database, Factory, TrendingUp } from "lucide-react";
+import { Database, Factory, Gauge, TrendingUp } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { KpiCard } from "@/components/kpi-card";
 import { PlanFilterBar } from "@/components/plan-filter-bar";
@@ -84,6 +84,7 @@ export default async function PlanVsActualPage({
   const totalPlanned = rows.reduce((sum, r) => sum + Number(r.planned), 0);
   const totalActual = rows.reduce((sum, r) => sum + Number(r.actual), 0);
   const variance = totalActual - totalPlanned;
+  const attainmentPct = totalPlanned > 0 ? Math.round((totalActual / totalPlanned) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,7 +100,7 @@ export default async function PlanVsActualPage({
         stream={stream}
         month={month.slice(0, 7)}
       />
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard title="Planned (month)" value={totalPlanned.toLocaleString()} icon={TrendingUp} />
         <KpiCard title="Actual (month)" value={totalActual.toLocaleString()} icon={TrendingUp} />
         <KpiCard
@@ -107,6 +108,12 @@ export default async function PlanVsActualPage({
           value={`${variance > 0 ? "+" : ""}${variance.toLocaleString()}`}
           icon={TrendingUp}
           tone={variance < 0 ? "warning" : "default"}
+        />
+        <KpiCard
+          title="Attainment"
+          value={`${attainmentPct}%`}
+          icon={Gauge}
+          tone={attainmentPct < 100 ? "warning" : "default"}
         />
       </div>
       <Card>

@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Plant } from "@/lib/api-client";
-import { BATCH_SCHEDULES, BATCH_STATUSES, BATCH_STREAMS } from "@/lib/filter-options";
+import { BATCH_SCHEDULES, BATCH_STATUSES, STREAMS } from "@/lib/filter-options";
 
 export function BatchesFilterBar({
   plants,
@@ -43,7 +43,7 @@ export function BatchesFilterBar({
     return p ? `${p.name} (${p.code})` : v;
   };
   const streamLabel = (v: string) =>
-    v === "all" ? "All streams" : (BATCH_STREAMS.find((s) => s.value === v)?.label ?? v);
+    v === "all" ? "All streams" : (STREAMS.find((s) => s.value === v)?.label ?? v);
   const statusLabel = (v: string) =>
     v === "all" ? "All statuses" : (BATCH_STATUSES.find((s) => s.value === v)?.label ?? v);
   const scheduleLabel = (v: string) =>
@@ -70,7 +70,7 @@ export function BatchesFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All streams</SelectItem>
-          {BATCH_STREAMS.map((s) => (
+          {STREAMS.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>
