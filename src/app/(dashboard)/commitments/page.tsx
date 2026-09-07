@@ -232,7 +232,7 @@ export default async function CommitmentsPage({
                       <TableCell>{c.customerName}</TableCell>
                       <TableCell>
                         <div className="flex items-start max-w-[220px] whitespace-normal">
-                          <span className="font-mono text-[11px] text-teal-800 bg-teal-100 dark:text-teal-200 dark:bg-teal-900 px-1.5 py-[1px] rounded mr-2 mt-0.5">
+                          <span className="mr-2 mt-0.5 rounded bg-primary/10 px-1.5 py-[1px] font-mono text-[11px] text-primary">
                             {c.itemCode}
                           </span>
                           <span className="text-sm">

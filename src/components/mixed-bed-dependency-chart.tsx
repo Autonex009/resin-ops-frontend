@@ -48,17 +48,14 @@ export function MixedBedDependencyChart({ data }: { data: StreamCapacityPoint[] 
             />
           }
         />
-        <ReferenceLine 
-          y={feederCeiling} 
-          stroke="var(--chart-4)" 
-          strokeDasharray="4 4" 
+        {/* No inline label here: Cation/Anion sit exactly on this line by
+            definition, so a label collides with their bar value labels.
+            The ceiling % is stated in the card description instead. */}
+        <ReferenceLine
+          y={feederCeiling}
+          stroke="var(--chart-4)"
+          strokeDasharray="4 4"
           strokeWidth={1.5}
-          label={{ 
-            value: `Ceiling ${Math.round(feederCeiling)}%`, 
-            fontSize: 11, 
-            fill: "var(--chart-4)", 
-            position: "insideTopRight" 
-          }}
         />
         <Bar dataKey="utilizationPct" fill="var(--color-utilizationPct)" radius={4} maxBarSize={64}>
           <LabelList
