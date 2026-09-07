@@ -37,11 +37,17 @@ export function PlanFilterBar({
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  const plantLabel = (v: string) => {
+    const p = plants.find((p) => p.code === v);
+    return p ? `${p.name} (${p.code})` : v;
+  };
+  const streamLabel = (v: string) => STREAMS.find((s) => s.value === v)?.label ?? v;
+
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Select value={plant} onValueChange={(v) => update("plant", v)}>
         <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Plant" />
+          <SelectValue placeholder="Plant">{plantLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {plants.map((p) => (
@@ -53,7 +59,7 @@ export function PlanFilterBar({
       </Select>
       <Select value={stream} onValueChange={(v) => update("stream", v)}>
         <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder="Stream" />
+          <SelectValue placeholder="Stream">{streamLabel}</SelectValue>
         </SelectTrigger>
         <SelectContent>
           {STREAMS.map((s) => (
