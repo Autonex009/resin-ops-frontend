@@ -139,12 +139,49 @@ export function getCapacity(month: string) {
   return apiGet<{ rows: CapacityRow[] }>(`/api/capacity?${search}`).then((r) => r.rows);
 }
 
-export function getBatches() {
-  return apiGet<{ batches: Batch[] }>("/api/batches").then((r) => r.batches);
+export type BatchesParams = {
+  plant?: string;
+  stream?: string;
+  status?: string;
+  schedule?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type PaginatedBatches = { batches: Batch[]; total: number; page: number; pageSize: number };
+
+function toSearchParams(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === "" || value === "all") continue;
+    search.set(key, String(value));
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : "";
 }
 
-export function getCommitments() {
-  return apiGet<{ commitments: Commitment[] }>("/api/commitments").then((r) => r.commitments);
+export function getBatches(params: BatchesParams = {}) {
+  return apiGet<PaginatedBatches>(`/api/batches${toSearchParams(params)}`);
+}
+
+export type CommitmentsParams = {
+  plant?: string;
+  businessGroup?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export type PaginatedCommitments = {
+  commitments: Commitment[];
+  total: number;
+  page: number;
+  pageSize: number;
+  businessGroups: string[];
+};
+
+export function getCommitments(params: CommitmentsParams = {}) {
+  return apiGet<PaginatedCommitments>(`/api/commitments${toSearchParams(params)}`);
 }
 
 export function importSalesCommitments(formData: FormData) {
