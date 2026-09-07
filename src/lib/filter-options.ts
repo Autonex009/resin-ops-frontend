@@ -1,4 +1,4 @@
-export const BATCH_STREAMS = [
+export const STREAMS = [
   { value: "cation", label: "Cation" },
   { value: "anion", label: "Anion" },
   { value: "mixed_bed", label: "Mixed Bed" },
