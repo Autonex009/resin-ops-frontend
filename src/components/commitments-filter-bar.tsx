@@ -9,11 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Plant } from "@/lib/api-client";
-
-const STATUSES = [
-  { value: "short", label: "Short" },
-  { value: "on_track", label: "On track" },
-];
+import { COMMITMENT_STATUSES } from "@/lib/filter-options";
 
 export function CommitmentsFilterBar({
   plants,
@@ -48,7 +44,7 @@ export function CommitmentsFilterBar({
   };
   const businessGroupLabel = (v: string) => (v === "all" ? "All business groups" : v);
   const statusLabel = (v: string) =>
-    v === "all" ? "Any status" : (STATUSES.find((s) => s.value === v)?.label ?? v);
+    v === "all" ? "Any status" : (COMMITMENT_STATUSES.find((s) => s.value === v)?.label ?? v);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -84,7 +80,7 @@ export function CommitmentsFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Any status</SelectItem>
-          {STATUSES.map((s) => (
+          {COMMITMENT_STATUSES.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>

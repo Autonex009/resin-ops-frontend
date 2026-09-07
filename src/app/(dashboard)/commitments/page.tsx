@@ -1,7 +1,10 @@
-import { Database, ClipboardList, Info } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardList, Database, IndianRupee, Info } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
+import { ActiveFilterChips, type FilterChip } from "@/components/active-filter-chips";
 import { CommitmentsFilterBar } from "@/components/commitments-filter-bar";
 import { DataPagination } from "@/components/data-pagination";
+import { KpiCard } from "@/components/kpi-card";
+import { SearchInput } from "@/components/search-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,8 +22,10 @@ import {
   getCommitments,
   getPlants,
   type Commitment,
+  type CommitmentsSummary,
   type Plant,
 } from "@/lib/api-client";
+import { COMMITMENT_STATUSES } from "@/lib/filter-options";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +43,7 @@ export default async function CommitmentsPage({
     plant?: string;
     businessGroup?: string;
     status?: string;
+    search?: string;
     page?: string;
   }>;
 }) {
@@ -55,23 +61,26 @@ export default async function CommitmentsPage({
   const plant = sp.plant ?? "all";
   const businessGroup = sp.businessGroup ?? "all";
   const status = sp.status ?? "all";
+  const search = sp.search?.trim() ?? "";
   const page = Math.max(1, Number(sp.page ?? "1"));
 
   let rows: Commitment[] = [];
   let total = 0;
   let businessGroups: string[] = [];
   let plantsList: Plant[] = [];
+  let summary: CommitmentsSummary = { total: 0, short: 0, onTrack: 0, totalBalanceValue: 0 };
   let error: unknown = null;
 
   try {
     const [commitmentsResult, plants] = await Promise.all([
-      getCommitments({ plant, businessGroup, status, page, pageSize: PAGE_SIZE }),
+      getCommitments({ plant, businessGroup, status, search, page, pageSize: PAGE_SIZE }),
       getPlants(),
     ]);
     rows = commitmentsResult.commitments;
     total = commitmentsResult.total;
     businessGroups = commitmentsResult.businessGroups;
     plantsList = plants;
+    summary = commitmentsResult.summary;
   } catch (e) {
     error = e;
   }
@@ -83,6 +92,24 @@ export default async function CommitmentsPage({
   }
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const chips: FilterChip[] = [];
+  if (plant !== "all") {
+    const p = plantsList.find((pl) => pl.code === plant);
+    chips.push({ key: "plant", label: p ? `${p.name} (${p.code})` : plant });
+  }
+  if (businessGroup !== "all") {
+    chips.push({ key: "businessGroup", label: businessGroup });
+  }
+  if (status !== "all") {
+    chips.push({
+      key: "status",
+      label: COMMITMENT_STATUSES.find((s) => s.value === status)?.label ?? status,
+    });
+  }
+  if (search) {
+    chips.push({ key: "search", label: `"${search}"` });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,13 +129,32 @@ export default async function CommitmentsPage({
           outstanding — it does not yet project risk from remaining capacity.
         </AlertDescription>
       </Alert>
-      <CommitmentsFilterBar
-        plants={plantsList}
-        businessGroups={businessGroups}
-        plant={plant}
-        businessGroup={businessGroup}
-        status={status}
-      />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <KpiCard title="Total Commitments" value={summary.total.toLocaleString()} icon={ClipboardList} />
+        <KpiCard title="On Track" value={summary.onTrack.toLocaleString()} icon={CheckCircle2} />
+        <KpiCard
+          title="Short"
+          value={summary.short.toLocaleString()}
+          icon={AlertTriangle}
+          tone={summary.short > 0 ? "warning" : "default"}
+        />
+        <KpiCard
+          title="Balance Value"
+          value={`₹${summary.totalBalanceValue.toLocaleString()}`}
+          icon={IndianRupee}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <CommitmentsFilterBar
+          plants={plantsList}
+          businessGroups={businessGroups}
+          plant={plant}
+          businessGroup={businessGroup}
+          status={status}
+        />
+        <SearchInput placeholder="Search order # or customer..." />
+      </div>
+      <ActiveFilterChips chips={chips} />
       {rows.length === 0 ? (
         <EmptyState
           icon={ClipboardList}
