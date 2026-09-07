@@ -24,7 +24,7 @@ import {
   type BatchesSummary,
   type Plant,
 } from "@/lib/api-client";
-import { BATCH_SCHEDULES, BATCH_STATUSES, BATCH_STREAMS } from "@/lib/filter-options";
+import { BATCH_SCHEDULES, BATCH_STATUSES, STREAMS } from "@/lib/filter-options";
 
 export const dynamic = "force-dynamic";
 
@@ -112,7 +112,7 @@ export default async function BatchesPage({
     chips.push({ key: "plant", label: p ? `${p.name} (${p.code})` : plant });
   }
   if (stream !== "all") {
-    chips.push({ key: "stream", label: BATCH_STREAMS.find((s) => s.value === stream)?.label ?? stream });
+    chips.push({ key: "stream", label: STREAMS.find((s) => s.value === stream)?.label ?? stream });
   }
   if (status !== "all") {
     chips.push({ key: "status", label: BATCH_STATUSES.find((s) => s.value === status)?.label ?? status });
