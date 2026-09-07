@@ -2,15 +2,9 @@ import { Database, Factory, Gauge, TrendingUp } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { KpiCard } from "@/components/kpi-card";
 import { PlanFilterBar } from "@/components/plan-filter-bar";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlanVsActualChart } from "@/components/plan-vs-actual-chart";
+import { PlanVsActualCumulativeChart } from "@/components/plan-vs-actual-cumulative-chart";
 import {
   isApiConfigured,
   describeApiError,
@@ -19,9 +13,14 @@ import {
   type Plant,
   type DailyRow,
 } from "@/lib/api-client";
-import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+const STREAM_LABELS: Record<string, string> = {
+  cation: "Cation",
+  anion: "Anion",
+  mixed_bed: "Mixed Bed",
+};
 
 function currentMonthStart() {
   const now = new Date();
@@ -91,7 +90,7 @@ export default async function PlanVsActualPage({
       <div>
         <h1 className="text-lg font-semibold">Plan vs Actual</h1>
         <p className="text-sm text-muted-foreground">
-          Day-by-day planned vs actual output for the selected plant, stream and month.
+          Day-by-day planned vs actual output for the selected plant, stream and month. Zero days are visual, not hidden.
         </p>
       </div>
       <PlanFilterBar
@@ -116,52 +115,31 @@ export default async function PlanVsActualPage({
           tone={attainmentPct < 100 ? "warning" : "default"}
         />
       </div>
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Day</TableHead>
-                <TableHead className="text-right">Planned</TableHead>
-                <TableHead className="text-right">Actual</TableHead>
-                <TableHead className="text-right">Variance</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => {
-                const planned = Number(r.planned);
-                const actual = Number(r.actual);
-                const dayVariance = actual - planned;
-                return (
-                  <TableRow key={r.day}>
-                    <TableCell>
-                      {new Date(r.day).toLocaleDateString(undefined, {
-                        day: "2-digit",
-                        month: "short",
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {planned.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {actual.toLocaleString()}
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "text-right tabular-nums",
-                        dayVariance < 0 && "text-destructive",
-                      )}
-                    >
-                      {dayVariance > 0 ? "+" : ""}
-                      {dayVariance.toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Output</CardTitle>
+            <CardDescription>
+              {plantCode} · {STREAM_LABELS[stream] ?? stream} — planned vs actual per day.
+              Zero days are visual, not hidden.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PlanVsActualChart data={rows} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Cumulative Output</CardTitle>
+            <CardDescription>
+              Running month-to-date total — how far actual has drifted from the planned pace.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PlanVsActualCumulativeChart data={rows} />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

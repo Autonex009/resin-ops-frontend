@@ -25,7 +25,7 @@ export function MixedBedDependencyChart({ data }: { data: StreamCapacityPoint[] 
 
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
-      <BarChart data={rows} margin={{ left: 4, right: 12, top: 16, bottom: 0 }}>
+      <BarChart data={rows} margin={{ left: 4, right: 12, top: 24, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis dataKey="streamLabel" tickLine={false} axisLine={false} tickMargin={8} />
         <YAxis
@@ -48,7 +48,18 @@ export function MixedBedDependencyChart({ data }: { data: StreamCapacityPoint[] 
             />
           }
         />
-        <ReferenceLine y={feederCeiling} stroke="var(--destructive)" strokeDasharray="4 4" strokeWidth={1.5} />
+        <ReferenceLine 
+          y={feederCeiling} 
+          stroke="var(--chart-4)" 
+          strokeDasharray="4 4" 
+          strokeWidth={1.5}
+          label={{ 
+            value: `Ceiling ${Math.round(feederCeiling)}%`, 
+            fontSize: 11, 
+            fill: "var(--chart-4)", 
+            position: "insideTopRight" 
+          }}
+        />
         <Bar dataKey="utilizationPct" fill="var(--color-utilizationPct)" radius={4} maxBarSize={64}>
           <LabelList
             dataKey="utilizationPct"
