@@ -9,24 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { Plant } from "@/lib/api-client";
-
-const STREAMS = [
-  { value: "cation", label: "Cation" },
-  { value: "anion", label: "Anion" },
-  { value: "mixed_bed", label: "Mixed Bed" },
-];
-
-const STATUSES = [
-  { value: "planned", label: "Planned" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "completed", label: "Completed" },
-  { value: "delayed", label: "Delayed" },
-];
-
-const SCHEDULES = [
-  { value: "behind", label: "Behind" },
-  { value: "on_track", label: "On track" },
-];
+import { BATCH_SCHEDULES, BATCH_STATUSES, BATCH_STREAMS } from "@/lib/filter-options";
 
 export function BatchesFilterBar({
   plants,
@@ -60,11 +43,11 @@ export function BatchesFilterBar({
     return p ? `${p.name} (${p.code})` : v;
   };
   const streamLabel = (v: string) =>
-    v === "all" ? "All streams" : (STREAMS.find((s) => s.value === v)?.label ?? v);
+    v === "all" ? "All streams" : (BATCH_STREAMS.find((s) => s.value === v)?.label ?? v);
   const statusLabel = (v: string) =>
-    v === "all" ? "All statuses" : (STATUSES.find((s) => s.value === v)?.label ?? v);
+    v === "all" ? "All statuses" : (BATCH_STATUSES.find((s) => s.value === v)?.label ?? v);
   const scheduleLabel = (v: string) =>
-    v === "all" ? "Any schedule" : (SCHEDULES.find((s) => s.value === v)?.label ?? v);
+    v === "all" ? "Any schedule" : (BATCH_SCHEDULES.find((s) => s.value === v)?.label ?? v);
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -87,7 +70,7 @@ export function BatchesFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All streams</SelectItem>
-          {STREAMS.map((s) => (
+          {BATCH_STREAMS.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>
@@ -100,7 +83,7 @@ export function BatchesFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All statuses</SelectItem>
-          {STATUSES.map((s) => (
+          {BATCH_STATUSES.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>
@@ -113,7 +96,7 @@ export function BatchesFilterBar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Any schedule</SelectItem>
-          {SCHEDULES.map((s) => (
+          {BATCH_SCHEDULES.map((s) => (
             <SelectItem key={s.value} value={s.value}>
               {s.label}
             </SelectItem>
