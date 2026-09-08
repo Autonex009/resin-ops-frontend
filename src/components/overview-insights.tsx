@@ -131,10 +131,16 @@ function deriveInsights(data: KpisResponse): {
   }
 
   // ---- Mixed Bed feeder ceiling ----
-  const streamUtil = Object.fromEntries(capacityByStream.map((s) => [s.stream, s.utilizationPct]));
-  const feederCeiling = Math.min(streamUtil["cation"] ?? 100, streamUtil["anion"] ?? 100);
-  const mixedBed = streamUtil["mixed_bed"];
-  if (mixedBed !== undefined && feederCeiling < 100 && mixedBed >= feederCeiling - 1) {
+  const capacityByStreamMap = Object.fromEntries(capacityByStream.map((s) => [s.stream, s]));
+  const cationStream = capacityByStreamMap["cation"];
+  const anionStream = capacityByStreamMap["anion"];
+  // Only meaningful once there's real capacity data for at least one feeder
+  // stream — otherwise 0% utilization everywhere reads as "capped" when
+  // it's really just "no data yet".
+  const hasFeederCapacityData = (cationStream?.capacity ?? 0) > 0 || (anionStream?.capacity ?? 0) > 0;
+  const feederCeiling = Math.min(cationStream?.utilizationPct ?? 100, anionStream?.utilizationPct ?? 100);
+  const mixedBed = capacityByStreamMap["mixed_bed"]?.utilizationPct;
+  if (hasFeederCapacityData && mixedBed !== undefined && feederCeiling < 100 && mixedBed >= feederCeiling - 1) {
     attention.push({
       title: `Mixed Bed capped at ~${feederCeiling.toFixed(0)}%`,
       detail: "Mixed Bed can't out-produce its slower Cation/Anion feeder streams.",
