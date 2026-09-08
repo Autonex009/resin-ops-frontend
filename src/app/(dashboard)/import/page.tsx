@@ -8,6 +8,7 @@ import {
   importSalesCommitments,
   importPlantCapacity,
   importDailyOutput,
+  importPlanningCapacityMaster,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,7 @@ export default function ImportPage() {
           <TabsTrigger value="sales-commitment">Sales Commitment</TabsTrigger>
           <TabsTrigger value="plant-capacity">Plant Capacity</TabsTrigger>
           <TabsTrigger value="daily-output">Daily Output</TabsTrigger>
+          <TabsTrigger value="planning-capacity-master">Planning-Capacity Master</TabsTrigger>
         </TabsList>
         <TabsContent value="sales-commitment">
           <Card>
@@ -117,6 +119,34 @@ export default function ImportPage() {
                 label="Daily Output"
                 action={importDailyOutput}
                 expectedColumns={["Plant Code", "Stream", "Date", "Actual Qty"]}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="planning-capacity-master">
+          <Card>
+            <CardHeader>
+              <CardTitle>Planning-Capacity Master</CardTitle>
+              <CardDescription>
+                Thermax&apos;s real per-plant planning export (one sheet per plant, wide
+                per-shift/per-day layout). There&apos;s no maximum-capacity column in this file,
+                so it feeds the production plan and daily output (Plan vs Actual) rather than
+                Capacity Utilization. Row 2 must hold the plant name, and row 4&apos;s first
+                column must read &quot;&lt;Stream&gt; (Product Type)&quot; — sheets that don&apos;t
+                match this shape are skipped.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ImportForm
+                id="planning-capacity-master-file"
+                label="Planning-Capacity Master"
+                action={importPlanningCapacityMaster}
+                expectedColumns={[
+                  "Row 2, col A: Plant name (e.g. \"Jhagadia Plant\")",
+                  "Row 4, col A: \"<Stream> (Product Type)\" (e.g. \"Anion (Product Type)\")",
+                  "Row 4: Stream, Product, Monthly Req, Prod Plan, Output, C/T",
+                  "Row 3+4 onward: one (date, A shift, B shift, C shift) column group per day",
+                ]}
               />
             </CardContent>
           </Card>

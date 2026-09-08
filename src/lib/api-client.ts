@@ -213,3 +213,7 @@ export function importPlantCapacity(formData: FormData) {
 export function importDailyOutput(formData: FormData) {
   return apiPostFile("/api/import/daily-output", formData);
 }
+
+export function importPlanningCapacityMaster(formData: FormData) {
+  return apiPostFile("/api/import/planning-capacity-master", formData);
+}
