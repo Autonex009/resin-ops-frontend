@@ -4,6 +4,7 @@ import {
   importSalesCommitments as apiImportSalesCommitments,
   importPlantCapacity as apiImportPlantCapacity,
   importDailyOutput as apiImportDailyOutput,
+  importPlanningCapacityMaster as apiImportPlanningCapacityMaster,
   type ImportResult,
 } from "@/lib/api-client";
 
@@ -27,4 +28,9 @@ export async function importPlantCapacity(formData: FormData): Promise<ImportRes
 export async function importDailyOutput(formData: FormData): Promise<ImportResult> {
   if (!readFile(formData)) return { success: false, message: "No file selected." };
   return apiImportDailyOutput(formData);
+}
+
+export async function importPlanningCapacityMaster(formData: FormData): Promise<ImportResult> {
+  if (!readFile(formData)) return { success: false, message: "No file selected." };
+  return apiImportPlanningCapacityMaster(formData);
 }
