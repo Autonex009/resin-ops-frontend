@@ -5,8 +5,12 @@ import { ActiveFilterChips, type FilterChip } from "@/components/active-filter-c
 import { DataPagination } from "@/components/data-pagination";
 import { KpiCard } from "@/components/kpi-card";
 import { SearchInput } from "@/components/search-input";
+import {
+  BatchDistributionChart,
+  type DistributionSlice,
+} from "@/components/batch-distribution-chart";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -80,17 +84,20 @@ export default async function BatchesPage({
   const page = Math.max(1, Number(sp.page ?? "1"));
 
   let rows: Batch[] = [];
+  let allRows: Batch[] = [];
   let total = 0;
   let plantsList: Plant[] = [];
   let summary: BatchesSummary = { total: 0, behind: 0, onTrack: 0 };
   let error: unknown = null;
 
   try {
-    const [batchesResult, plants] = await Promise.all([
+    const [batchesResult, allBatchesResult, plants] = await Promise.all([
       getBatches({ plant, stream, status, schedule, search, page, pageSize: PAGE_SIZE }),
+      getBatches({ plant, stream, status, schedule, search, page: 1, pageSize: 500 }),
       getPlants(),
     ]);
     rows = batchesResult.batches;
+    allRows = allBatchesResult.batches;
     total = batchesResult.total;
     plantsList = plants;
     summary = batchesResult.summary;
@@ -127,6 +134,35 @@ export default async function BatchesPage({
     chips.push({ key: "search", label: `"${search}"` });
   }
 
+  // ---- Derived data for the distribution donut and roadmap ----
+  const STATUS_META: Record<string, { label: string; color: string }> = {
+    planned: { label: "Planned", color: "var(--chart-1)" },
+    in_progress: { label: "In Progress", color: "var(--chart-3)" },
+    completed: { label: "Completed", color: "var(--chart-2)" },
+    delayed: { label: "Delayed", color: "var(--destructive)" },
+  };
+
+  const statusCounts = allRows.reduce<Record<string, number>>((acc, b) => {
+    acc[b.status] = (acc[b.status] ?? 0) + 1;
+    return acc;
+  }, {});
+  const byStatus: DistributionSlice[] = Object.keys(STATUS_META)
+    .filter((k) => statusCounts[k])
+    .map((k) => ({ name: STATUS_META[k].label, value: statusCounts[k], color: STATUS_META[k].color }));
+
+  const behindCount = allRows.filter((b) => isBehindSchedule(b.plannedCompletion, b.actualCompletion)).length;
+  const bySchedule: DistributionSlice[] = [
+    { name: "On track", value: allRows.length - behindCount, color: "var(--chart-2)" },
+    { name: "Behind", value: behindCount, color: "var(--destructive)" },
+  ];
+
+  const roadmap = allRows
+    .filter((b) => b.status === "planned" || b.status === "in_progress")
+    .sort((a, b) => a.plannedCompletion.localeCompare(b.plannedCompletion))
+    .slice(0, 6);
+
+  const hasCharts = allRows.length > 0;
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -150,6 +186,56 @@ export default async function BatchesPage({
           tone={summary.behind > 0 ? "warning" : "default"}
         />
       </div>
+      {hasCharts && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch Distribution</CardTitle>
+              <CardDescription>
+                How the current batch set splits by status and by schedule health.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <BatchDistributionChart byStatus={byStatus} bySchedule={bySchedule} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch Roadmap</CardTitle>
+              <CardDescription>Upcoming and in-progress batches, by planned completion.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {roadmap.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
+                  No upcoming or in-progress batches.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-3">
+                  {roadmap.map((b) => {
+                    const behind = isBehindSchedule(b.plannedCompletion, b.actualCompletion);
+                    return (
+                      <li key={b.id} className="flex items-start gap-3">
+                        <span
+                          className={`mt-1.5 size-2.5 shrink-0 rounded-full ${behind ? "bg-destructive" : "bg-primary"}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm text-foreground">{b.batchNumber}</span>
+                            <Badge variant={STATUS_VARIANT[b.status] ?? "outline"}>{b.status}</Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Due {b.plannedCompletion} · {b.plant.code} ({STREAM_LABELS[b.stream] ?? b.stream})
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BatchesFilterBar
           plants={plantsList}

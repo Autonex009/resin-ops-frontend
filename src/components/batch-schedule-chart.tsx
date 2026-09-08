@@ -1,45 +1,66 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, Cell, XAxis, YAxis, LabelList } from "recharts";
-import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import type { BatchScheduleSummary } from "@/lib/api-client";
-
-const chartConfig = {
-  count: {
-    label: "Batches",
-  },
-} satisfies ChartConfig;
 
 export function BatchScheduleChart({ data }: { data: BatchScheduleSummary }) {
   const rows = [
-    { label: "On track", count: data.onTrack, color: "var(--muted-foreground)" },
-    { label: "Behind", count: data.behind, color: "var(--destructive)" },
+    { name: "On track", value: data.onTrack, color: "var(--chart-2)" },
+    { name: "Behind", value: data.behind, color: "var(--destructive)" },
   ];
 
+  const total = data.onTrack + data.behind;
+  const onTrackPct = total > 0 ? Math.round((data.onTrack / total) * 100) : 0;
+
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
-      <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 24, top: 8, bottom: 0 }}>
-        <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-        <XAxis type="number" tickLine={false} axisLine={false} allowDecimals={false} />
-        <YAxis
-          dataKey="label"
-          type="category"
-          tickLine={false}
-          axisLine={false}
-          width={70}
-        />
-        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-        <Bar dataKey="count" radius={4} maxBarSize={36}>
-          {rows.map((row) => (
-            <Cell key={row.label} fill={row.color} />
-          ))}
-          <LabelList
-            dataKey="count"
-            position="right"
-            className="fill-foreground text-xs"
-          />
-        </Bar>
-      </BarChart>
-    </ChartContainer>
+    <div className="flex h-[220px] w-full items-center justify-center gap-8">
+      <div className="h-[160px] w-[160px] shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={rows}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={48}
+              outerRadius={76}
+              paddingAngle={2}
+              strokeWidth={0}
+              isAnimationActive={false}
+            >
+              {rows.map((d) => (
+                <Cell key={d.name} fill={d.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 6,
+                border: "1px solid var(--border)",
+                background: "var(--popover)",
+                color: "var(--popover-foreground)",
+              }}
+              itemStyle={{ color: "var(--popover-foreground)" }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="shrink-0">
+        {rows.map((d) => (
+          <div key={d.name} className="mb-2.5 flex items-center gap-2">
+            <span
+              className="size-2.5 rounded-[3px]"
+              style={{ background: d.color }}
+            />
+            <span className="text-sm text-foreground">{d.name}</span>
+            <span className="ml-1 font-mono text-sm tabular-nums text-muted-foreground">
+              {d.value}
+            </span>
+          </div>
+        ))}
+        <div className="mt-3 text-xs text-muted-foreground">
+          {onTrackPct}% on track
+        </div>
+      </div>
+    </div>
   );
 }

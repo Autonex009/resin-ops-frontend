@@ -38,8 +38,8 @@ export function OutputByPlantChart({ data }: { data: PlantOutputPoint[] }) {
         />
         <ChartTooltip content={<ChartTooltipContent />} />
         <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="planned" fill="var(--color-planned)" radius={4} maxBarSize={48} />
-        <Bar dataKey="actual" fill="var(--color-actual)" radius={4} maxBarSize={48} />
+        <Bar dataKey="planned" fill="var(--color-planned)" radius={[3, 3, 0, 0]} barSize={26} />
+        <Bar dataKey="actual" fill="var(--color-actual)" radius={[3, 3, 0, 0]} barSize={26} />
       </BarChart>
     </ChartContainer>
   );

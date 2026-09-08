@@ -1,6 +1,6 @@
 "use client";
 
-import { Line, LineChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, Line, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import {
   ChartConfig,
   ChartContainer,
@@ -30,7 +30,13 @@ function formatDay(value: string) {
 export function DailyTrendChart({ data }: { data: DailyTrendPoint[] }) {
   return (
     <ChartContainer config={chartConfig} className="aspect-auto h-[220px] w-full">
-      <LineChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
+      <AreaChart data={data} margin={{ left: 4, right: 12, top: 8, bottom: 0 }}>
+        <defs>
+          <linearGradient id="fillActual" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="var(--color-actual)" stopOpacity={0.35} />
+            <stop offset="100%" stopColor="var(--color-actual)" stopOpacity={0.02} />
+          </linearGradient>
+        </defs>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
         <XAxis
           dataKey="day"
@@ -64,16 +70,17 @@ export function DailyTrendChart({ data }: { data: DailyTrendPoint[] }) {
           dot={false}
           isAnimationActive={false}
         />
-        <Line
+        <Area
           dataKey="actual"
           type="monotone"
           stroke="var(--color-actual)"
           strokeWidth={2}
+          fill="url(#fillActual)"
           dot={false}
           activeDot={{ r: 4 }}
           isAnimationActive={false}
         />
-      </LineChart>
+      </AreaChart>
     </ChartContainer>
   );
 }
