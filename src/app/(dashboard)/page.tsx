@@ -9,6 +9,8 @@ import { MixedBedDependencyChart } from "@/components/mixed-bed-dependency-chart
 import { CommitmentsAgingChart } from "@/components/commitments-aging-chart";
 import { BatchDueDateHeatmap } from "@/components/batch-due-date-heatmap";
 import { PlantStreamHeatmap } from "@/components/plant-stream-heatmap";
+import { RadialGaugeChart } from "@/components/radial-gauge-chart";
+import { OverviewInsights } from "@/components/overview-insights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { isApiConfigured, describeApiError, getKpis, type KpisResponse } from "@/lib/api-client";
 
@@ -100,6 +102,59 @@ export default async function OverviewPage() {
           tone={commitmentsShort > 0 ? "warning" : "default"}
         />
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Attainment &amp; Utilization at a glance</CardTitle>
+          <CardDescription>
+            Where the month stands against plan and against installed capacity.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <RadialGaugeChart
+              value={attainmentPct}
+              label="Plan Attainment"
+              caption={`${output.actual.toLocaleString()} / ${output.planned.toLocaleString()}`}
+              tone={
+                attainmentPct === null
+                  ? "primary"
+                  : attainmentPct >= 90
+                    ? "success"
+                    : attainmentPct >= 50
+                      ? "warning"
+                      : "destructive"
+              }
+            />
+            <RadialGaugeChart
+              value={utilizationPct}
+              label="Capacity Utilization"
+              caption={`${output.actual.toLocaleString()} / ${capacity.capacity.toLocaleString()}`}
+              tone="primary"
+            />
+            <RadialGaugeChart
+              value={feederCeilingPct}
+              label="Feeder Ceiling"
+              caption="Mixed Bed constraint"
+              tone="warning"
+            />
+            <RadialGaugeChart
+              value={
+                batchesSchedule.onTrack + batchesSchedule.behind > 0
+                  ? (batchesSchedule.onTrack /
+                      (batchesSchedule.onTrack + batchesSchedule.behind)) *
+                    100
+                  : null
+              }
+              label="Batches On Track"
+              caption={`${batchesSchedule.onTrack} of ${
+                batchesSchedule.onTrack + batchesSchedule.behind
+              }`}
+              tone="success"
+            />
+          </div>
+        </CardContent>
+      </Card>
+      <OverviewInsights data={data} />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>

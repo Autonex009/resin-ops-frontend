@@ -38,8 +38,10 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-1.5">
-          <FlaskConical className="h-5 w-5 text-primary" />
+        <div className="flex items-center gap-2.5 px-2 py-1.5">
+          <span className="flex size-8 items-center justify-center rounded-md bg-primary/12 text-primary">
+            <FlaskConical className="size-4.5" />
+          </span>
           <div className="flex flex-col leading-none">
             <span className="text-sm font-semibold">Resin Ops</span>
             <span className="text-xs text-muted-foreground">Thermax</span>
