@@ -48,8 +48,8 @@ export default async function PlanVsActualPage({
 
   let plantsList: Plant[] = [];
   let rows: DailyRow[] = [];
-  let plantCode = sp.plant ?? "";
-  const stream = sp.stream ?? "cation";
+  const plantCode = sp.plant ?? "all";
+  const stream = sp.stream ?? "all";
   const month = sp.month ? `${sp.month}-01` : currentMonthStart();
   let error: unknown = null;
 
@@ -57,7 +57,6 @@ export default async function PlanVsActualPage({
     plantsList = await getPlants();
 
     if (plantsList.length > 0) {
-      plantCode = plantCode || plantsList[0].code;
       rows = await getPlanVsActual({ plant: plantCode, stream, month });
     }
   } catch (e) {
@@ -120,8 +119,9 @@ export default async function PlanVsActualPage({
           <CardHeader>
             <CardTitle>Daily Output</CardTitle>
             <CardDescription>
-              {plantCode} · {STREAM_LABELS[stream] ?? stream} — planned vs actual per day.
-              Zero days are visual, not hidden.
+              {plantCode === "all" ? "All plants" : plantCode} ·{" "}
+              {stream === "all" ? "All streams" : (STREAM_LABELS[stream] ?? stream)} — planned vs
+              actual per day. Zero days are visual, not hidden.
             </CardDescription>
           </CardHeader>
           <CardContent>
