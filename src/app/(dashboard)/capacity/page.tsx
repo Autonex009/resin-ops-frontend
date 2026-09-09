@@ -115,8 +115,8 @@ export default async function CapacityPage({
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <KpiCard title="Total Capacity" value={totalCapacity.toLocaleString()} icon={Package} />
-            <KpiCard title="Total Actual" value={totalActual.toLocaleString()} icon={TrendingUp} />
+            <KpiCard title="Total Capacity" value={`${totalCapacity.toLocaleString()} m³`} icon={Package} />
+            <KpiCard title="Total Actual" value={`${totalActual.toLocaleString()} m³`} icon={TrendingUp} />
             <KpiCard
               title="Overall Utilization"
               value={`${utilizationPct}%`}
@@ -196,8 +196,8 @@ export default async function CapacityPage({
                       <TableRow>
                         <TableHead>Plant</TableHead>
                         <TableHead>Stream</TableHead>
-                        <TableHead className="text-right">Capacity</TableHead>
-                        <TableHead className="text-right">Actual</TableHead>
+                        <TableHead className="text-right">Capacity (m³)</TableHead>
+                        <TableHead className="text-right">Actual (m³)</TableHead>
                         <TableHead className="text-right">Utilization</TableHead>
                       </TableRow>
                     </TableHeader>
