@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
 
   return (
     <Button
       variant="ghost"
       size="icon"
       aria-label="Toggle theme"
-      title={isDark ? "Switch to light" : "Switch to dark"}
-      onClick={() => setTheme(isDark ? "light" : "dark")}
+      // Keep this static: resolvedTheme is unknown during SSR, so a
+      // theme-dependent title would cause a hydration mismatch.
+      title="Toggle theme"
+      onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
       {/* Icons swap purely via the html.dark class, so there is no
           hydration mismatch before next-themes resolves. */}

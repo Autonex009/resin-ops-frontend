@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { Cell, Pie, PieChart, Tooltip } from "recharts";
 
 export type DistributionSlice = { name: string; value: number; color: string };
 
@@ -35,34 +35,34 @@ export function BatchDistributionChart({
       </div>
       <div className="flex items-center gap-6">
         <div className="h-[160px] w-[160px] shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={48}
-                outerRadius={76}
-                paddingAngle={2}
-                strokeWidth={0}
-                isAnimationActive={false}
-              >
-                {data.map((d) => (
-                  <Cell key={d.name} fill={d.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 6,
-                  border: "1px solid var(--border)",
-                  background: "var(--popover)",
-                  color: "var(--popover-foreground)",
-                }}
-                itemStyle={{ color: "var(--popover-foreground)" }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <PieChart width={160} height={160}>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx={78}
+              cy={78}
+              innerRadius={48}
+              outerRadius={76}
+              paddingAngle={2}
+              strokeWidth={0}
+              isAnimationActive={false}
+            >
+              {data.map((d) => (
+                <Cell key={d.name} fill={d.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                fontSize: 12,
+                borderRadius: 6,
+                border: "1px solid var(--border)",
+                background: "var(--popover)",
+                color: "var(--popover-foreground)",
+              }}
+              itemStyle={{ color: "var(--popover-foreground)" }}
+            />
+          </PieChart>
         </div>
         <div className="flex flex-col gap-2.5">
           {data.map((d) => (
