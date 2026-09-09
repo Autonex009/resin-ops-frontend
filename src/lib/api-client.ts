@@ -129,9 +129,8 @@ export function getPlants() {
   return apiGet<{ plants: Plant[] }>("/api/plants").then((r) => r.plants);
 }
 
-export function getPlanVsActual(params: { plant: string; stream: string; month: string }) {
-  const search = new URLSearchParams(params);
-  return apiGet<{ rows: DailyRow[] }>(`/api/plan-vs-actual?${search}`).then((r) => r.rows);
+export function getPlanVsActual(params: { plant?: string; stream?: string; month: string }) {
+  return apiGet<{ rows: DailyRow[] }>(`/api/plan-vs-actual${toSearchParams(params)}`).then((r) => r.rows);
 }
 
 export function getCapacity(month: string) {
