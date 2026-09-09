@@ -1,5 +1,6 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ChatWidget } from "@/components/chat-widget";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -30,6 +31,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </SidebarInset>
+      <ChatWidget />
     </SidebarProvider>
   );
 }
