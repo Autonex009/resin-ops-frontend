@@ -1,6 +1,6 @@
 "use client";
 
-import { Pie, PieChart, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { Pie, PieChart, Cell, Tooltip } from "recharts";
 import type { BatchScheduleSummary } from "@/lib/api-client";
 
 export function BatchScheduleChart({ data }: { data: BatchScheduleSummary }) {
@@ -15,34 +15,34 @@ export function BatchScheduleChart({ data }: { data: BatchScheduleSummary }) {
   return (
     <div className="flex h-[220px] w-full items-center justify-center gap-8">
       <div className="h-[160px] w-[160px] shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={rows}
-              dataKey="value"
-              nameKey="name"
-              innerRadius={48}
-              outerRadius={76}
-              paddingAngle={2}
-              strokeWidth={0}
-              isAnimationActive={false}
-            >
-              {rows.map((d) => (
-                <Cell key={d.name} fill={d.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 6,
-                border: "1px solid var(--border)",
-                background: "var(--popover)",
-                color: "var(--popover-foreground)",
-              }}
-              itemStyle={{ color: "var(--popover-foreground)" }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+        <PieChart width={160} height={160}>
+          <Pie
+            data={rows}
+            dataKey="value"
+            nameKey="name"
+            cx={78}
+            cy={78}
+            innerRadius={48}
+            outerRadius={76}
+            paddingAngle={2}
+            strokeWidth={0}
+            isAnimationActive={false}
+          >
+            {rows.map((d) => (
+              <Cell key={d.name} fill={d.color} />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={{
+              fontSize: 12,
+              borderRadius: 6,
+              border: "1px solid var(--border)",
+              background: "var(--popover)",
+              color: "var(--popover-foreground)",
+            }}
+            itemStyle={{ color: "var(--popover-foreground)" }}
+          />
+        </PieChart>
       </div>
       <div className="shrink-0">
         {rows.map((d) => (

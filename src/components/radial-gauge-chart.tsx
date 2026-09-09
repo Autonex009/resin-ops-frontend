@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  PolarAngleAxis,
-  RadialBar,
-  RadialBarChart,
-  ResponsiveContainer,
-} from "recharts";
+import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 
 type GaugeTone = "primary" | "success" | "warning" | "destructive";
 
@@ -37,30 +32,30 @@ export function RadialGaugeChart({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative h-[120px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart
-            data={[{ value: pct, fill: color }]}
-            startAngle={210}
-            endAngle={-30}
-            innerRadius="72%"
-            outerRadius="100%"
-            barSize={14}
-          >
-            <PolarAngleAxis
-              type="number"
-              domain={[0, 100]}
-              angleAxisId={0}
-              tick={false}
-            />
-            <RadialBar
-              background={{ fill: "var(--muted)" }}
-              dataKey="value"
-              cornerRadius={8}
-              isAnimationActive={false}
-            />
-          </RadialBarChart>
-        </ResponsiveContainer>
+      <div className="relative" style={{ width: 140, height: 120 }}>
+        <RadialBarChart
+          width={140}
+          height={120}
+          data={[{ value: pct, fill: color }]}
+          startAngle={210}
+          endAngle={-30}
+          innerRadius="72%"
+          outerRadius="100%"
+          barSize={14}
+        >
+          <PolarAngleAxis
+            type="number"
+            domain={[0, 100]}
+            angleAxisId={0}
+            tick={false}
+          />
+          <RadialBar
+            background={{ fill: "var(--muted)" }}
+            dataKey="value"
+            cornerRadius={8}
+            isAnimationActive={false}
+          />
+        </RadialBarChart>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="font-mono text-2xl font-semibold tabular-nums text-foreground">
             {value === null ? "—" : `${Math.round(pct)}%`}
