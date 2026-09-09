@@ -100,11 +100,11 @@ export default async function PlanVsActualPage({
         month={month.slice(0, 7)}
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard title="Planned (month)" value={totalPlanned.toLocaleString()} icon={TrendingUp} />
-        <KpiCard title="Actual (month)" value={totalActual.toLocaleString()} icon={TrendingUp} />
+        <KpiCard title="Planned (month)" value={`${totalPlanned.toLocaleString()} m³`} icon={TrendingUp} />
+        <KpiCard title="Actual (month)" value={`${totalActual.toLocaleString()} m³`} icon={TrendingUp} />
         <KpiCard
           title="Variance"
-          value={`${variance > 0 ? "+" : ""}${variance.toLocaleString()}`}
+          value={`${variance > 0 ? "+" : ""}${variance.toLocaleString()} m³`}
           icon={TrendingUp}
           tone={variance < 0 ? "warning" : "default"}
         />
