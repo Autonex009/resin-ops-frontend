@@ -84,20 +84,20 @@ export default async function OverviewPage() {
         <KpiCard
           title="Daily Output (MTD)"
           value={output.actual.toLocaleString()}
-          subtext="Actual output booked this month"
+          subtext="Booked so far this month"
           icon={TrendingUp}
         />
         <KpiCard
           title="Batches Behind"
           value={String(batchesBehind)}
-          subtext="More than half a day behind their planned completion"
+          subtext="Over half a day past plan"
           icon={ListChecks}
           tone={batchesBehind > 0 ? "warning" : "default"}
         />
         <KpiCard
           title="Commitments Short"
           value={String(commitmentsShort)}
-          subtext="Past their required date with balance still outstanding"
+          subtext="Overdue with balance due"
           icon={ClipboardList}
           tone={commitmentsShort > 0 ? "warning" : "default"}
         />
