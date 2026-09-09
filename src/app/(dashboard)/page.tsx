@@ -210,8 +210,7 @@ export default async function OverviewPage() {
           <CardHeader>
             <CardTitle>Mixed Bed Dependency</CardTitle>
             <CardDescription>
-              Mixed Bed can&apos;t out-produce its slower feeder stream — the dashed line marks
-              that ceiling, {feederCeilingPct}% this month.
+              Capped by its slower feeder streams — {feederCeilingPct}% ceiling this month.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -222,7 +221,7 @@ export default async function OverviewPage() {
           <CardHeader>
             <CardTitle>Commitments Aging</CardTitle>
             <CardDescription>
-              Open commitments by days until required — the risk pipeline behind Commitments Short.
+              Open commitments grouped by days until required.
             </CardDescription>
           </CardHeader>
           <CardContent>
