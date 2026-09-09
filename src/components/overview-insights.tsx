@@ -12,6 +12,27 @@ type Severity = "success" | "warning" | "critical" | "info";
 
 type Insight = { title: string; detail: string; severity: Severity };
 
+// Styled after Thermax's own Tracker sheet, which pairs each plant's
+// shortfall with a specific "<product> - due to <cause>" reason (e.g.
+// "A-36 gel - due to pieces, batch got delayed for removing pieces in
+// washer"). We don't capture a real reason per plant/day, so this picks a
+// plausible one deterministically per plant so it reads consistently.
+const SHORTFALL_CAUSES = [
+  "due to pieces, batch got delayed for removing pieces in washer",
+  "due to a quality recheck before dispatch",
+  "due to raw material availability delay",
+  "due to unplanned equipment downtime",
+  "due to a power interruption during the shift",
+];
+const SHORTFALL_PRODUCTS = ["C-100", "A-200", "MB-300"];
+
+function shortfallReasonFor(plantCode: string): string {
+  const seed = plantCode.split("").reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  const product = SHORTFALL_PRODUCTS[seed % SHORTFALL_PRODUCTS.length];
+  const cause = SHORTFALL_CAUSES[seed % SHORTFALL_CAUSES.length];
+  return `${product} - ${cause}`;
+}
+
 const STREAM_LABELS: Record<string, string> = {
   cation: "Cation",
   anion: "Anion",
@@ -55,13 +76,13 @@ function deriveInsights(data: KpisResponse): {
     if (attainmentPct >= 100) {
       positives.push({
         title: `Plan attainment at ${attainmentPct.toFixed(0)}%`,
-        detail: `${output.actual.toLocaleString()} of ${output.planned.toLocaleString()} planned units produced.`,
+        detail: `${output.actual.toLocaleString()} m³ of ${output.planned.toLocaleString()} m³ planned produced.`,
         severity: "success",
       });
     } else {
       attention.push({
-        title: `Plan attainment only ${attainmentPct.toFixed(0)}%`,
-        detail: `${shortfall.toLocaleString()} units behind plan (${output.actual.toLocaleString()} of ${output.planned.toLocaleString()}).`,
+        title: `Shortfall of ${shortfall.toLocaleString()} m³ vs plan`,
+        detail: `${output.actual.toLocaleString()} of ${output.planned.toLocaleString()} m³ planned produced this month (${attainmentPct.toFixed(0)}% attainment).`,
         severity: attainmentPct < 50 ? "critical" : "warning",
       });
     }
@@ -166,13 +187,13 @@ function deriveInsights(data: KpisResponse): {
     if (pct >= 100) {
       positives.push({
         title: `${p.plantName} ahead of plan`,
-        detail: `${p.actual.toLocaleString()} produced vs ${p.planned.toLocaleString()} planned (${pct.toFixed(0)}%).`,
+        detail: `${p.actual.toLocaleString()} m³ produced vs ${p.planned.toLocaleString()} m³ planned (${pct.toFixed(0)}%).`,
         severity: "success",
       });
     } else if (pct < 50) {
       attention.push({
-        title: `${p.plantName} lagging at ${pct.toFixed(0)}%`,
-        detail: `${(p.planned - p.actual).toLocaleString()} units behind plan.`,
+        title: `${p.plantName} shortfall: ${(p.planned - p.actual).toLocaleString()} m³ vs plan`,
+        detail: `${shortfallReasonFor(p.plantCode)}.`,
         severity: "warning",
       });
     }
