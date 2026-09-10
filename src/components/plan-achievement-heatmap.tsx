@@ -2,17 +2,26 @@ import type { DailyTrendPoint } from "@/lib/api-client";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
-// Reuse the app's existing semantic tokens rather than introducing new
-// colors: --success (met) and --destructive (behind) are already
-// theme-aware across light/dark, and --ring is the app's established
-// "highlighted element" token, used here for the today indicator.
-const MET = "var(--success)";
-const MET_FOREGROUND = "var(--success-foreground)";
-const BEHIND = "var(--destructive)";
-const TODAY_RING = "var(--ring)";
+// Green -> yellow -> red gradient for plan achievement (the requested
+// conditional-format look). The red/black theme has no green/yellow tokens, so
+// these are explicit data-encoding colors: higher % of the day's target pace
+// reads greener, lower reads redder.
+const NO_DATA = "var(--muted)";
+const TODAY = "#374151"; // current day — dark grey
 const pad = (n: number) => String(n).padStart(2, "0");
 
-type DayState = "met" | "behind" | "none";
+// t in [0,1] -> hue 0 (red) .. 60 (yellow) .. 120 (green)
+const heatColor = (t: number) =>
+  `hsl(${Math.round(Math.max(0, Math.min(1, t)) * 120)}, 70%, 45%)`;
+const GRADIENT = "linear-gradient(to right, hsl(0,70%,45%), hsl(60,70%,45%), hsl(120,70%,45%))";
+
+type Cell = {
+  dayNum: number;
+  dateStr: string;
+  isFuture: boolean;
+  isToday: boolean;
+  pct: number | null;
+};
 
 export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
   if (data.length === 0) return null;
@@ -37,21 +46,21 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
   const leadingBlanks = new Date(Date.UTC(year, month, 1)).getUTCDay();
   const today = new Date().toISOString().slice(0, 10);
 
-  const cells = Array.from({ length: daysInMonth }, (_, i) => {
+  const cells: Cell[] = Array.from({ length: daysInMonth }, (_, i) => {
     const dayNum = i + 1;
     const dateStr = `${year}-${pad(month + 1)}-${pad(dayNum)}`;
     const isFuture = dateStr > today;
-    const isToday = dateStr === today;
-    const pct = pctByDay.get(dateStr);
-
-    let state: DayState;
-    if (isFuture || pct === undefined || pct === null) state = "none";
-    else state = pct >= 100 ? "met" : "behind";
-
-    return { dayNum, dateStr, isFuture, isToday, pct: pct ?? null, state };
+    const raw = pctByDay.get(dateStr);
+    const pct = isFuture || raw === undefined || raw === null ? null : raw;
+    return { dayNum, dateStr, isFuture, isToday: dateStr === today, pct };
   });
 
-  const fillFor = (s: DayState) => (s === "met" ? MET : s === "behind" ? BEHIND : "var(--muted)");
+  // Normalize colors across the days that have data, so the gradient reads like
+  // a conditional-format heatmap (best days green, worst red, middle yellow).
+  const observed = cells.map((c) => c.pct).filter((v): v is number => v !== null);
+  const lo = observed.length ? Math.min(...observed) : 0;
+  const hi = observed.length ? Math.max(...observed) : 0;
+  const norm = (pct: number) => (hi > lo ? (pct - lo) / (hi - lo) : 1);
 
   return (
     <div className="flex flex-col gap-3">
@@ -65,6 +74,12 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
           <div key={`blank-${i}`} />
         ))}
         {cells.map((cell) => {
+          const hasData = cell.pct !== null;
+          const bg = cell.isToday
+            ? TODAY
+            : hasData
+              ? heatColor(norm(cell.pct as number))
+              : NO_DATA;
           const title =
             cell.pct === null
               ? cell.isFuture
@@ -77,14 +92,8 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
               title={title}
               className="flex aspect-square items-center justify-center rounded-md text-[11px] tabular-nums"
               style={{
-                backgroundColor: fillFor(cell.state),
-                color:
-                  cell.state === "none"
-                    ? "var(--muted-foreground)"
-                    : cell.state === "met"
-                      ? MET_FOREGROUND
-                      : "#ffffff",
-                boxShadow: cell.isToday ? `inset 0 0 0 2px ${TODAY_RING}` : undefined,
+                backgroundColor: bg,
+                color: cell.isToday || hasData ? "#ffffff" : "var(--muted-foreground)",
               }}
             >
               {cell.dayNum}
@@ -93,21 +102,16 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
         })}
       </div>
       <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: MET }} /> Met plan
+        <span className="flex items-center gap-1.5">
+          Behind
+          <span className="h-2.5 w-16 rounded-sm" style={{ background: GRADIENT }} />
+          Met plan
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: BEHIND }} /> Behind
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: NO_DATA }} /> No data
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "var(--muted)" }} /> No data
-        </span>
-        <span className="flex items-center gap-1">
-          <span
-            className="h-2.5 w-2.5 rounded-sm"
-            style={{ boxShadow: `inset 0 0 0 2px ${TODAY_RING}` }}
-          />{" "}
-          Today
+          <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: TODAY }} /> Today
         </span>
       </div>
     </div>
