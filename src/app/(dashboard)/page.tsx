@@ -82,7 +82,7 @@ export default async function OverviewPage() {
         />
         <KpiCard
           title="Total Output"
-          value={output.actual.toLocaleString()}
+          value={`${output.actual.toLocaleString()} m³`}
           subtext="Booked so far this month"
           icon={TrendingUp}
         />

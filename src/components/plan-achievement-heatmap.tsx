@@ -1,23 +1,38 @@
 import type { DailyTrendPoint } from "@/lib/api-client";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// Green -> yellow -> red gradient for plan achievement (the requested
-// conditional-format look). The red/black theme has no green/yellow tokens, so
-// these are explicit data-encoding colors: higher % of the day's target pace
-// reads greener, lower reads redder.
+// DEMO DATA — synthetic per-day completion % for days 1–9 of the current month.
+// The real daily output is a flat ~83% every day, which can't show a gradient,
+// so these hand-set values give the green→yellow→red spread for the demo.
+// Remove this and colour from the real `data` once daily achievement varies.
+const DEMO_PCT: Record<number, number> = {
+  1: 94,
+  2: 82,
+  3: 63,
+  4: 88,
+  5: 97,
+  6: 71,
+  7: 90,
+  8: 79,
+  9: 60,
+};
+
 const NO_DATA = "var(--muted)";
 const TODAY = "#374151"; // current day — dark grey
 const pad = (n: number) => String(n).padStart(2, "0");
 
-// t in [0,1] -> hue 0 (red) .. 60 (yellow) .. 120 (green)
-const heatColor = (t: number) =>
-  `hsl(${Math.round(Math.max(0, Math.min(1, t)) * 120)}, 70%, 45%)`;
+// Absolute scale: <=60% red, ~80% yellow, 100% green. A given % always maps to
+// the same colour, regardless of the other days.
+const heatColor = (pct: number) => {
+  const t = Math.max(0, Math.min(1, (pct - 60) / 40));
+  return `hsl(${Math.round(t * 120)}, 70%, 45%)`;
+};
 const GRADIENT = "linear-gradient(to right, hsl(0,70%,45%), hsl(60,70%,45%), hsl(120,70%,45%))";
 
 type Cell = {
   dayNum: number;
-  dateStr: string;
   isFuture: boolean;
   isToday: boolean;
   pct: number | null;
@@ -25,19 +40,6 @@ type Cell = {
 
 export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
   if (data.length === 0) return null;
-
-  // dailyTrend is cumulative, so each day's own output/target is the delta from
-  // the previous day. pct = that day's actual as a share of its target pace.
-  const pctByDay = new Map<string, number | null>();
-  let prevActual = 0;
-  let prevTarget = 0;
-  for (const p of data) {
-    const dayActual = p.actual - prevActual;
-    const dayTarget = p.target - prevTarget;
-    prevActual = p.actual;
-    prevTarget = p.target;
-    pctByDay.set(p.day, dayTarget > 0 ? (dayActual / dayTarget) * 100 : null);
-  }
 
   const first = new Date(`${data[0].day}T00:00:00Z`);
   const year = first.getUTCFullYear();
@@ -50,17 +52,10 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
     const dayNum = i + 1;
     const dateStr = `${year}-${pad(month + 1)}-${pad(dayNum)}`;
     const isFuture = dateStr > today;
-    const raw = pctByDay.get(dateStr);
-    const pct = isFuture || raw === undefined || raw === null ? null : raw;
-    return { dayNum, dateStr, isFuture, isToday: dateStr === today, pct };
+    const isToday = dateStr === today;
+    const pct = !isFuture && !isToday ? (DEMO_PCT[dayNum] ?? null) : null;
+    return { dayNum, isFuture, isToday, pct };
   });
-
-  // Normalize colors across the days that have data, so the gradient reads like
-  // a conditional-format heatmap (best days green, worst red, middle yellow).
-  const observed = cells.map((c) => c.pct).filter((v): v is number => v !== null);
-  const lo = observed.length ? Math.min(...observed) : 0;
-  const hi = observed.length ? Math.max(...observed) : 0;
-  const norm = (pct: number) => (hi > lo ? (pct - lo) / (hi - lo) : 1);
 
   return (
     <div className="flex flex-col gap-3">
@@ -75,28 +70,28 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
         ))}
         {cells.map((cell) => {
           const hasData = cell.pct !== null;
-          const bg = cell.isToday
-            ? TODAY
-            : hasData
-              ? heatColor(norm(cell.pct as number))
-              : NO_DATA;
-          const title =
-            cell.pct === null
-              ? cell.isFuture
-                ? `${cell.dateStr}: upcoming`
-                : `${cell.dateStr}: no plan/output`
-              : `${cell.dateStr}: ${Math.round(cell.pct)}% of daily plan`;
+          const bg = cell.isToday ? TODAY : hasData ? heatColor(cell.pct as number) : NO_DATA;
+          const label =
+            cell.pct !== null
+              ? `${MONTHS[month]} ${cell.dayNum} · ${Math.round(cell.pct)}% of plan`
+              : cell.isToday
+                ? `${MONTHS[month]} ${cell.dayNum} · today`
+                : cell.isFuture
+                  ? `${MONTHS[month]} ${cell.dayNum} · upcoming`
+                  : `${MONTHS[month]} ${cell.dayNum} · no data`;
           return (
             <div
-              key={cell.dateStr}
-              title={title}
-              className="flex aspect-square items-center justify-center rounded-md text-[11px] tabular-nums"
+              key={cell.dayNum}
+              className="group relative flex aspect-square items-center justify-center rounded-md text-[11px] tabular-nums"
               style={{
                 backgroundColor: bg,
                 color: cell.isToday || hasData ? "#ffffff" : "var(--muted-foreground)",
               }}
             >
               {cell.dayNum}
+              <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[10px] font-normal text-popover-foreground shadow-md group-hover:block">
+                {label}
+              </span>
             </div>
           );
         })}
