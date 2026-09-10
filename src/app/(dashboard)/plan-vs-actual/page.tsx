@@ -3,7 +3,7 @@ import { EmptyState } from "@/components/empty-state";
 import { KpiCard } from "@/components/kpi-card";
 import { PlanFilterBar } from "@/components/plan-filter-bar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlanVsActualChart } from "@/components/plan-vs-actual-chart";
+import { DailyOutputRanged } from "@/components/daily-output-ranged";
 import { PlanVsActualCumulativeChart } from "@/components/plan-vs-actual-cumulative-chart";
 import {
   isApiConfigured,
@@ -125,7 +125,7 @@ export default async function PlanVsActualPage({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <PlanVsActualChart data={rows} />
+            <DailyOutputRanged data={rows} />
           </CardContent>
         </Card>
         <Card>
