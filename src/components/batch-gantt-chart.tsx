@@ -1,7 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import { CartesianGrid, ReferenceLine, Scatter, ScatterChart, XAxis, YAxis } from "recharts";
+import {
+  CartesianGrid,
+  ReferenceLine,
+  Scatter,
+  ScatterChart,
+  useXAxisScale,
+  useYAxisScale,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import type { Batch } from "@/lib/api-client";
 
@@ -25,6 +34,7 @@ function dayMs(dateStr: string) {
 
 type Point = {
   x: number;
+  plannedIdx: number;
   row: string;
   batchNumber: string;
   status: string;
@@ -33,6 +43,8 @@ type Point = {
   actualCompletion: string | null;
   color: string;
 };
+
+type SlipBar = { row: string; from: number; to: number; color: string };
 
 function GanttTooltip({
   active,
@@ -57,11 +69,54 @@ function GanttTooltip({
   );
 }
 
+// Draws the planned->actual slip bars using the chart's own scales, so they
+// line up exactly with the dots rendered by <Scatter>. Recharts 3 dropped
+// <Customized> in favor of rendering elements straight into the chart tree
+// and reading position via these scale hooks.
+function SlipBars({ bars }: { bars: SlipBar[] }) {
+  const xScale = useXAxisScale();
+  const yScale = useYAxisScale();
+  if (!xScale || !yScale || bars.length === 0) return null;
+
+  return (
+    <g>
+      {bars.map((bar, i) => {
+        const x1 = xScale(bar.from);
+        const x2 = xScale(bar.to);
+        const y = yScale(bar.row, { position: "middle" });
+        if (x1 === undefined || x2 === undefined || y === undefined) return null;
+        const left = Math.min(x1, x2);
+        const width = Math.max(Math.abs(x2 - x1), 2);
+        return (
+          <rect
+            key={i}
+            x={left}
+            y={y - 3}
+            width={width}
+            height={6}
+            rx={3}
+            fill={bar.color}
+            opacity={0.55}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
 export function BatchGanttChart({ batches }: { batches: Batch[] }) {
-  const { points, rows, minIdx, maxIdx, todayIdx, base } = useMemo(() => {
+  const { points, slipBars, rows, minIdx, maxIdx, todayIdx, base } = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (batches.length === 0) {
-      return { points: [] as Point[], rows: [] as string[], minIdx: 0, maxIdx: 0, todayIdx: 0, base: dayMs(today) };
+      return {
+        points: [] as Point[],
+        slipBars: [] as SlipBar[],
+        rows: [] as string[],
+        minIdx: 0,
+        maxIdx: 0,
+        todayIdx: 0,
+        base: dayMs(today),
+      };
     }
 
     const allDates = [
@@ -87,6 +142,7 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
             : "var(--muted-foreground)";
       return {
         x: toIdx(b.actualCompletion ?? b.plannedCompletion),
+        plannedIdx: toIdx(b.plannedCompletion),
         row,
         batchNumber: b.batchNumber,
         status: b.status,
@@ -97,11 +153,23 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
       };
     });
 
+    // A bar only means something real for batches that actually finished:
+    // its length is the genuine planned->actual gap. Batches still pending
+    // (no actual yet) have nothing to bar to, so they stay dots only.
+    const slipBars: SlipBar[] = points
+      .filter((p) => p.actualCompletion && p.plannedIdx !== p.x)
+      .map((p) => ({
+        row: p.row,
+        from: p.plannedIdx,
+        to: p.x,
+        color: p.x > p.plannedIdx ? "var(--destructive)" : "var(--muted-foreground)",
+      }));
+
     const rows = Array.from(rowSet).sort();
     const todayIdx = toIdx(today);
-    const xs = [...points.map((p) => p.x), todayIdx];
+    const xs = [...points.map((p) => p.x), ...points.map((p) => p.plannedIdx), todayIdx];
 
-    return { points, rows, minIdx: Math.min(...xs), maxIdx: Math.max(...xs), todayIdx, base };
+    return { points, slipBars, rows, minIdx: Math.min(...xs), maxIdx: Math.max(...xs), todayIdx, base };
   }, [batches]);
 
   if (points.length === 0) {
@@ -138,6 +206,7 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
           fontSize={11}
         />
         <ReferenceLine x={todayIdx} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
+        <SlipBars bars={slipBars} />
         <ChartTooltip content={<GanttTooltip />} cursor={{ strokeDasharray: "3 3" }} />
         <Scatter
           data={points}
