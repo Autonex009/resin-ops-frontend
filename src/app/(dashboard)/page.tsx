@@ -71,18 +71,18 @@ export default async function OverviewPage() {
         <KpiCard
           title="Plan Attainment"
           value={attainmentPct !== null ? `${attainmentPct.toFixed(0)}%` : "—"}
-          subtext={`${output.actual.toLocaleString()} of ${output.planned.toLocaleString()} planned`}
+          subtext={`${output.actual.toLocaleString()} of ${output.planned.toLocaleString()} m³ planned`}
           icon={TrendingUp}
         />
         <KpiCard
           title="Capacity Utilization"
           value={utilizationPct !== null ? `${utilizationPct.toFixed(0)}%` : "—"}
-          subtext={`${output.actual.toLocaleString()} of ${capacity.capacity.toLocaleString()} capacity`}
+          subtext={`${output.actual.toLocaleString()} of ${capacity.capacity.toLocaleString()} m³ capacity`}
           icon={Gauge}
         />
         <KpiCard
           title="Daily Output (MTD)"
-          value={output.actual.toLocaleString()}
+          value={`${output.actual.toLocaleString()} m³`}
           subtext="Booked so far this month"
           icon={TrendingUp}
         />
