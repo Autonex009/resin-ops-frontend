@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Loader2, MessageSquare, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +12,60 @@ const SUGGESTIONS = [
   "Which streams are near their capacity ceiling?",
   "How many batches are behind schedule?",
 ];
+
+// Render the small subset of Markdown the model uses (bold + bullet lists)
+// so replies look presentable instead of showing raw ** and - characters.
+function renderInline(text: string, keyBase: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const regex = /\*\*(.+?)\*\*/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) nodes.push(text.slice(last, match.index));
+    nodes.push(<strong key={`${keyBase}-b${idx++}`}>{match[1]}</strong>);
+    last = match.index + match[0].length;
+  }
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
+
+function MarkdownMessage({ text }: { text: string }) {
+  const blocks: ReactNode[] = [];
+  let bullets: string[] = [];
+
+  const flushBullets = () => {
+    if (bullets.length === 0) return;
+    const at = blocks.length;
+    blocks.push(
+      <ul key={`ul-${at}`} className="my-1 list-disc space-y-0.5 pl-4">
+        {bullets.map((b, i) => (
+          <li key={i}>{renderInline(b, `li-${at}-${i}`)}</li>
+        ))}
+      </ul>,
+    );
+    bullets = [];
+  };
+
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    const bullet = line.match(/^[-*]\s+(.*)$/);
+    if (bullet) {
+      bullets.push(bullet[1]);
+    } else if (line === "") {
+      flushBullets();
+    } else {
+      flushBullets();
+      const at = blocks.length;
+      blocks.push(
+        <p key={`p-${at}`}>{renderInline(line, `p-${at}`)}</p>,
+      );
+    }
+  }
+  flushBullets();
+
+  return <div className="space-y-1.5">{blocks}</div>;
+}
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -119,15 +173,19 @@ export function ChatWidget() {
                 >
                   <div
                     className={[
-                      "max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm",
+                      "max-w-[85%] rounded-2xl px-3 py-2 text-sm",
                       m.role === "user"
-                        ? "bg-primary text-primary-foreground"
+                        ? "whitespace-pre-wrap bg-primary text-primary-foreground"
                         : m.error
-                          ? "bg-destructive/10 text-destructive"
+                          ? "whitespace-pre-wrap bg-destructive/10 text-destructive"
                           : "bg-muted text-foreground",
                     ].join(" ")}
                   >
-                    {m.content}
+                    {m.role === "assistant" && !m.error ? (
+                      <MarkdownMessage text={m.content} />
+                    ) : (
+                      m.content
+                    )}
                   </div>
                 </div>
               ))
