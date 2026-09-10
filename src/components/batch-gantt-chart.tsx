@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { TriangleAlert } from "lucide-react";
 import {
   CartesianGrid,
   ReferenceLine,
@@ -25,6 +26,7 @@ const chartConfig = { batch: { label: "Batch" } } satisfies ChartConfig;
 
 const ROW_HEIGHT = 52;
 const DOT_RADIUS = 6;
+const DOT_RADIUS_DIM = 4.5;
 const BAR_HEIGHT = 14;
 
 function isBehindSchedule(plannedCompletion: string, actualCompletion: string | null) {
@@ -49,8 +51,9 @@ type Point = {
   color: string;
 };
 
-type SlipBar = { row: string; from: number; to: number; color: string };
+type SlipBar = { row: string; from: number; to: number; color: string; lateDays: number };
 type MonthTick = { idx: number; label: string };
+type RowSeverity = { row: string; behindCount: number; totalLateDays: number; maxLateDays: number };
 
 function GanttTooltip({
   active,
@@ -92,18 +95,32 @@ function SlipBars({ bars }: { bars: SlipBar[] }) {
         const y = yScale(bar.row, { position: "middle" });
         if (x1 === undefined || x2 === undefined || y === undefined) return null;
         const left = Math.min(x1, x2);
-        const width = Math.max(Math.abs(x2 - x1), BAR_HEIGHT / 2);
+        const right = Math.max(x1, x2);
+        const width = Math.max(right - left, BAR_HEIGHT / 2);
+        const late = bar.color === "var(--destructive)";
         return (
-          <rect
-            key={i}
-            x={left}
-            y={y - BAR_HEIGHT / 2}
-            width={width}
-            height={BAR_HEIGHT}
-            rx={BAR_HEIGHT / 2}
-            fill={bar.color}
-            opacity={0.85}
-          />
+          <g key={i}>
+            <rect
+              x={left}
+              y={y - BAR_HEIGHT / 2}
+              width={width}
+              height={BAR_HEIGHT}
+              rx={BAR_HEIGHT / 2}
+              fill={bar.color}
+              opacity={0.85}
+            />
+            <text
+              x={left + width + 6}
+              y={y}
+              dy={3.5}
+              fontSize={10}
+              fontWeight={600}
+              fill={late ? "var(--destructive)" : "var(--muted-foreground)"}
+            >
+              {late ? "+" : "-"}
+              {bar.lateDays}d
+            </text>
+          </g>
         );
       })}
     </g>
@@ -142,7 +159,7 @@ function MonthHeader({ ticks }: { ticks: MonthTick[] }) {
 }
 
 export function BatchGanttChart({ batches }: { batches: Batch[] }) {
-  const { points, slipBars, rows, minIdx, maxIdx, todayIdx, base, monthTicks } = useMemo(() => {
+  const { points, slipBars, rows, minIdx, maxIdx, todayIdx, base, monthTicks, worst } = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (batches.length === 0) {
       return {
@@ -154,6 +171,7 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
         todayIdx: 0,
         base: dayMs(today),
         monthTicks: [] as MonthTick[],
+        worst: null as RowSeverity | null,
       };
     }
 
@@ -163,6 +181,7 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
     ];
     const base = Math.min(...allDates.map(dayMs));
     const toIdx = (d: string) => Math.round((dayMs(d) - base) / 86_400_000);
+    const todayIdx = toIdx(today);
 
     const rowSet = new Set<string>();
     const points: Point[] = batches.map((b) => {
@@ -201,10 +220,48 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
         from: p.plannedIdx,
         to: p.x,
         color: p.x > p.plannedIdx ? "var(--destructive)" : "var(--muted-foreground)",
+        lateDays: Math.abs(p.x - p.plannedIdx),
       }));
 
-    const rows = Array.from(rowSet).sort();
-    const todayIdx = toIdx(today);
+    // Severity per row drives both the sort order (worst first) and the
+    // "most behind" callout. A batch still overdue with no actual date yet
+    // has slipped todayIdx - plannedIdx days so far, not zero.
+    const severity = new Map<string, RowSeverity>();
+    for (const p of points) {
+      if (!p.behind) continue;
+      const lateDays = p.actualCompletion ? p.x - p.plannedIdx : todayIdx - p.plannedIdx;
+      const entry = severity.get(p.row) ?? { row: p.row, behindCount: 0, totalLateDays: 0, maxLateDays: 0 };
+      entry.behindCount += 1;
+      entry.totalLateDays += lateDays;
+      entry.maxLateDays = Math.max(entry.maxLateDays, lateDays);
+      severity.set(p.row, entry);
+    }
+
+    // Worst-first ordering: rows with no behind batches keep a stable
+    // alphabetical order after the flagged ones. `worst` is derived from
+    // this SAME sorted list (rather than its own separate sort) so the
+    // "most behind" callout can never disagree with which row lands on
+    // top of the chart — two independent sorts over differently-ordered
+    // source collections can break ties inconsistently.
+    const sortedSeverity = Array.from(severity.values()).sort(
+      (a, b) => b.totalLateDays - a.totalLateDays || b.behindCount - a.behindCount,
+    );
+    const otherRows = Array.from(rowSet)
+      .filter((r) => !severity.has(r))
+      .sort((a, b) => a.localeCompare(b));
+    const rows = [...sortedSeverity.map((s) => s.row), ...otherRows];
+    const worst = sortedSeverity[0] ?? null;
+
+    // Recharts derives a category axis's visual row order from the order
+    // rows are first encountered in the data array, not from a `domain`
+    // prop or any external sort — confirmed empirically, since passing a
+    // sorted `domain` alone left the row order unchanged. The first row
+    // encountered ends up at the *bottom* of a vertical category axis, so
+    // reverse `rows` (worst-first) before assigning encounter order —
+    // that puts the worst row last-encountered, i.e. at the top.
+    const rowOrder = new Map([...rows].reverse().map((r, i) => [r, i]));
+    const orderedPoints = [...points].sort((a, b) => rowOrder.get(a.row)! - rowOrder.get(b.row)!);
+
     const xs = [...points.map((p) => p.x), ...points.map((p) => p.plannedIdx), todayIdx];
     const minIdx = Math.min(...xs);
     const maxIdx = Math.max(...xs);
@@ -222,7 +279,7 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
       cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
     }
 
-    return { points, slipBars, rows, minIdx, maxIdx, todayIdx, base, monthTicks };
+    return { points: orderedPoints, slipBars, rows, minIdx, maxIdx, todayIdx, base, monthTicks, worst };
   }, [batches]);
 
   if (points.length === 0) {
@@ -234,6 +291,15 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {worst && (
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            Most behind: <span className="font-semibold">{worst.row}</span> — {worst.behindCount} batch
+            {worst.behindCount === 1 ? "" : "es"}, up to {worst.maxLateDays}d late
+          </span>
+        </div>
+      )}
       <ChartContainer
         config={chartConfig}
         className="aspect-auto w-full"
@@ -263,6 +329,7 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
           <YAxis
             type="category"
             dataKey="row"
+            domain={rows}
             allowDuplicatedCategory={false}
             width={110}
             tickLine={false}
@@ -279,15 +346,32 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
             shape={(props) => {
               const { cx, cy, payload } = props as unknown as { cx?: number; cy?: number; payload?: Point };
               if (cx === undefined || cy === undefined || !payload) return <g />;
-              return <circle cx={cx} cy={cy} r={DOT_RADIUS} fill={payload.color} stroke="none" />;
+              // Fade out far-future "planned" batches so the chart isn't a
+              // wall of identical dots — anything already active or flagged
+              // stays at full strength.
+              const dim = payload.status === "planned" && !payload.behind;
+              return (
+                <circle
+                  cx={cx}
+                  cy={cy}
+                  r={dim ? DOT_RADIUS_DIM : DOT_RADIUS}
+                  fill={payload.color}
+                  opacity={dim ? 0.45 : 1}
+                  stroke="none"
+                />
+              );
             }}
           />
         </ScatterChart>
       </ChartContainer>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
         <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full opacity-45" style={{ backgroundColor: "var(--muted-foreground)" }} />
+          Planned
+        </span>
+        <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--muted-foreground)" }} />
-          Planned / in progress
+          In progress
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--chart-2)" }} />
