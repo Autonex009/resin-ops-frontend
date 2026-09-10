@@ -231,8 +231,7 @@ export default async function OverviewPage() {
           <CardHeader>
             <CardTitle>Plan Achievement by Day</CardTitle>
             <CardDescription>
-              Each day&apos;s output vs its target pace — green met plan, red fell short, grey no
-              data. Today is ringed in blue.
+              Each day&apos;s output vs its target pace.
             </CardDescription>
           </CardHeader>
           <CardContent>
