@@ -81,7 +81,7 @@ export default async function OverviewPage() {
           icon={Gauge}
         />
         <KpiCard
-          title="Daily Output (MTD)"
+          title="Total Output"
           value={`${output.actual.toLocaleString()} m³`}
           subtext="Booked so far this month"
           icon={TrendingUp}
