@@ -21,6 +21,18 @@ export function DailyOutputRanged({ data }: { data: DailyRow[] }) {
 
   const [from, setFrom] = useState(min);
   const [to, setTo] = useState(max);
+  const [syncedData, setSyncedData] = useState(data);
+
+  // The parent re-fetches (a new `data` array) whenever month/plant/stream
+  // changes -- reset the range then, otherwise a filter set on one month
+  // silently carries over and no longer matches the new data. Comparing the
+  // array reference (not just min/max) catches the case where two different
+  // months happen to share the same day range.
+  if (data !== syncedData) {
+    setSyncedData(data);
+    setFrom(min);
+    setTo(max);
+  }
 
   const filtered = useMemo(
     () => data.filter((r) => dayOf(r) >= from && dayOf(r) <= to),
