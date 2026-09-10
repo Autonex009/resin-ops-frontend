@@ -9,6 +9,7 @@ import { MixedBedDependencyChart } from "@/components/mixed-bed-dependency-chart
 import { CommitmentsAgingChart } from "@/components/commitments-aging-chart";
 import { BatchDueDateHeatmap } from "@/components/batch-due-date-heatmap";
 import { PlantStreamHeatmap } from "@/components/plant-stream-heatmap";
+import { PlanAchievementHeatmap } from "@/components/plan-achievement-heatmap";
 import { RadialGaugeChart } from "@/components/radial-gauge-chart";
 import { OverviewInsights } from "@/components/overview-insights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -237,6 +238,18 @@ export default async function OverviewPage() {
           </CardHeader>
           <CardContent>
             <BatchDueDateHeatmap data={batchDueDates} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Plan Achievement by Day</CardTitle>
+            <CardDescription>
+              Each day&apos;s output vs its target pace — green met plan, red fell short, grey no
+              data. Today is ringed in blue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <PlanAchievementHeatmap data={dailyTrend} />
           </CardContent>
         </Card>
         <Card>
