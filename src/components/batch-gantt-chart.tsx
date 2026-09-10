@@ -6,6 +6,7 @@ import {
   ReferenceLine,
   Scatter,
   ScatterChart,
+  usePlotArea,
   useXAxisScale,
   useYAxisScale,
   XAxis,
@@ -21,6 +22,10 @@ const STREAM_LABELS: Record<string, string> = {
 };
 
 const chartConfig = { batch: { label: "Batch" } } satisfies ChartConfig;
+
+const ROW_HEIGHT = 52;
+const DOT_RADIUS = 6;
+const BAR_HEIGHT = 14;
 
 function isBehindSchedule(plannedCompletion: string, actualCompletion: string | null) {
   const today = new Date().toISOString().slice(0, 10);
@@ -45,6 +50,7 @@ type Point = {
 };
 
 type SlipBar = { row: string; from: number; to: number; color: string };
+type MonthTick = { idx: number; label: string };
 
 function GanttTooltip({
   active,
@@ -86,17 +92,17 @@ function SlipBars({ bars }: { bars: SlipBar[] }) {
         const y = yScale(bar.row, { position: "middle" });
         if (x1 === undefined || x2 === undefined || y === undefined) return null;
         const left = Math.min(x1, x2);
-        const width = Math.max(Math.abs(x2 - x1), 2);
+        const width = Math.max(Math.abs(x2 - x1), BAR_HEIGHT / 2);
         return (
           <rect
             key={i}
             x={left}
-            y={y - 3}
+            y={y - BAR_HEIGHT / 2}
             width={width}
-            height={6}
-            rx={3}
+            height={BAR_HEIGHT}
+            rx={BAR_HEIGHT / 2}
             fill={bar.color}
-            opacity={0.55}
+            opacity={0.85}
           />
         );
       })}
@@ -104,8 +110,39 @@ function SlipBars({ bars }: { bars: SlipBar[] }) {
   );
 }
 
+// A second <XAxis> bound to its own xAxisId never gets a valid scale here
+// since no series references that id — so the month header is drawn as plain
+// text in the chart's reserved top margin instead, using the same
+// plot-area/scale hooks as <SlipBars>.
+function MonthHeader({ ticks }: { ticks: MonthTick[] }) {
+  const xScale = useXAxisScale();
+  const plotArea = usePlotArea();
+  if (!xScale || !plotArea || ticks.length === 0) return null;
+
+  return (
+    <g>
+      {ticks.map((t) => {
+        const x = xScale(t.idx);
+        if (x === undefined) return null;
+        return (
+          <text
+            key={t.idx}
+            x={x + 6}
+            y={plotArea.y - 10}
+            fontSize={12}
+            fontWeight={600}
+            fill="var(--foreground)"
+          >
+            {t.label}
+          </text>
+        );
+      })}
+    </g>
+  );
+}
+
 export function BatchGanttChart({ batches }: { batches: Batch[] }) {
-  const { points, slipBars, rows, minIdx, maxIdx, todayIdx, base } = useMemo(() => {
+  const { points, slipBars, rows, minIdx, maxIdx, todayIdx, base, monthTicks } = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     if (batches.length === 0) {
       return {
@@ -116,6 +153,7 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
         maxIdx: 0,
         todayIdx: 0,
         base: dayMs(today),
+        monthTicks: [] as MonthTick[],
       };
     }
 
@@ -168,8 +206,23 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
     const rows = Array.from(rowSet).sort();
     const todayIdx = toIdx(today);
     const xs = [...points.map((p) => p.x), ...points.map((p) => p.plannedIdx), todayIdx];
+    const minIdx = Math.min(...xs);
+    const maxIdx = Math.max(...xs);
 
-    return { points, slipBars, rows, minIdx: Math.min(...xs), maxIdx: Math.max(...xs), todayIdx, base };
+    // Month-boundary ticks for the calendar header row above the main axis.
+    const monthTicks: MonthTick[] = [];
+    const firstOfRange = new Date(base + minIdx * 86_400_000);
+    let cursor = new Date(Date.UTC(firstOfRange.getUTCFullYear(), firstOfRange.getUTCMonth(), 1));
+    const rangeEndMs = base + maxIdx * 86_400_000;
+    while (cursor.getTime() <= rangeEndMs) {
+      const idx = Math.round((cursor.getTime() - base) / 86_400_000);
+      if (idx >= minIdx - 1 && idx <= maxIdx + 1) {
+        monthTicks.push({ idx, label: cursor.toLocaleDateString(undefined, { month: "long" }) });
+      }
+      cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1));
+    }
+
+    return { points, slipBars, rows, minIdx, maxIdx, todayIdx, base, monthTicks };
   }, [batches]);
 
   if (points.length === 0) {
@@ -180,43 +233,75 @@ export function BatchGanttChart({ batches }: { batches: Batch[] }) {
     new Date(base + idx * 86_400_000).toLocaleDateString(undefined, { month: "short", day: "2-digit" });
 
   return (
-    <ChartContainer
-      config={chartConfig}
-      className="aspect-auto w-full"
-      style={{ height: Math.max(220, rows.length * 40 + 40) }}
-    >
-      <ScatterChart margin={{ left: 4, right: 16, top: 8, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis
-          type="number"
-          dataKey="x"
-          domain={[minIdx - 1, maxIdx + 1]}
-          tickFormatter={formatTick}
-          tickLine={false}
-          axisLine={false}
-          fontSize={11}
-        />
-        <YAxis
-          type="category"
-          dataKey="row"
-          allowDuplicatedCategory={false}
-          width={110}
-          tickLine={false}
-          axisLine={false}
-          fontSize={11}
-        />
-        <ReferenceLine x={todayIdx} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
-        <SlipBars bars={slipBars} />
-        <ChartTooltip content={<GanttTooltip />} cursor={{ strokeDasharray: "3 3" }} />
-        <Scatter
-          data={points}
-          shape={(props) => {
-            const { cx, cy, payload } = props as unknown as { cx?: number; cy?: number; payload?: Point };
-            if (cx === undefined || cy === undefined || !payload) return <g />;
-            return <circle cx={cx} cy={cy} r={5} fill={payload.color} stroke="none" />;
-          }}
-        />
-      </ScatterChart>
-    </ChartContainer>
+    <div className="flex flex-col gap-3">
+      <ChartContainer
+        config={chartConfig}
+        className="aspect-auto w-full"
+        style={{ height: Math.max(240, rows.length * ROW_HEIGHT + 76) }}
+      >
+        <ScatterChart margin={{ left: 4, right: 16, top: 28, bottom: 0 }}>
+          <CartesianGrid stroke="var(--border)" strokeOpacity={0.6} />
+          {monthTicks.map((t) => (
+            <ReferenceLine
+              key={t.idx}
+              x={t.idx}
+              stroke="var(--border)"
+              strokeWidth={1.5}
+              ifOverflow="extendDomain"
+            />
+          ))}
+          <XAxis
+            type="number"
+            dataKey="x"
+            domain={[minIdx - 1, maxIdx + 1]}
+            tickFormatter={formatTick}
+            tickLine={false}
+            axisLine={false}
+            fontSize={11}
+            tick={{ fill: "var(--muted-foreground)" }}
+          />
+          <YAxis
+            type="category"
+            dataKey="row"
+            allowDuplicatedCategory={false}
+            width={110}
+            tickLine={false}
+            axisLine={false}
+            fontSize={11.5}
+            tick={{ fill: "var(--foreground)", fontWeight: 500 }}
+          />
+          <ReferenceLine x={todayIdx} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
+          <MonthHeader ticks={monthTicks} />
+          <SlipBars bars={slipBars} />
+          <ChartTooltip content={<GanttTooltip />} cursor={{ strokeDasharray: "3 3" }} />
+          <Scatter
+            data={points}
+            shape={(props) => {
+              const { cx, cy, payload } = props as unknown as { cx?: number; cy?: number; payload?: Point };
+              if (cx === undefined || cy === undefined || !payload) return <g />;
+              return <circle cx={cx} cy={cy} r={DOT_RADIUS} fill={payload.color} stroke="none" />;
+            }}
+          />
+        </ScatterChart>
+      </ChartContainer>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--muted-foreground)" }} />
+          Planned / in progress
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--chart-2)" }} />
+          Completed on time
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "var(--destructive)" }} />
+          Behind schedule
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-4 rounded-full" style={{ backgroundColor: "var(--destructive)", opacity: 0.85 }} />
+          Days late (planned → actual)
+        </span>
+      </div>
+    </div>
   );
 }
