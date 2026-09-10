@@ -9,6 +9,7 @@ import {
   BatchDistributionChart,
   type DistributionSlice,
 } from "@/components/batch-distribution-chart";
+import { BatchGanttChart } from "@/components/batch-gantt-chart";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -156,11 +157,6 @@ export default async function BatchesPage({
     { name: "Behind", value: behindCount, color: "var(--destructive)" },
   ];
 
-  const roadmap = allRows
-    .filter((b) => b.status === "planned" || b.status === "in_progress")
-    .sort((a, b) => a.plannedCompletion.localeCompare(b.plannedCompletion))
-    .slice(0, 6);
-
   const hasCharts = allRows.length > 0;
 
   return (
@@ -187,7 +183,7 @@ export default async function BatchesPage({
         />
       </div>
       {hasCharts && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <>
           <Card>
             <CardHeader>
               <CardTitle>Batch Distribution</CardTitle>
@@ -201,40 +197,16 @@ export default async function BatchesPage({
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Batch Roadmap</CardTitle>
-              <CardDescription>Upcoming and in-progress batches, by planned completion.</CardDescription>
+              <CardTitle>Batch Schedule Timeline</CardTitle>
+              <CardDescription>
+                Every batch by plant/stream and completion date — red marks behind schedule.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              {roadmap.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  No upcoming or in-progress batches.
-                </p>
-              ) : (
-                <ul className="flex flex-col gap-3">
-                  {roadmap.map((b) => {
-                    const behind = isBehindSchedule(b.plannedCompletion, b.actualCompletion);
-                    return (
-                      <li key={b.id} className="flex items-start gap-3">
-                        <span
-                          className={`mt-1.5 size-2.5 shrink-0 rounded-full ${behind ? "bg-destructive" : "bg-primary"}`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-sm text-foreground">{b.batchNumber}</span>
-                            <Badge variant={STATUS_VARIANT[b.status] ?? "outline"}>{b.status}</Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            Due {b.plannedCompletion} · {b.plant.code} ({STREAM_LABELS[b.stream] ?? b.stream})
-                          </div>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+              <BatchGanttChart batches={allRows} />
             </CardContent>
           </Card>
-        </div>
+        </>
       )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <BatchesFilterBar
