@@ -7,8 +7,8 @@ import { OutputByPlantChart } from "@/components/output-by-plant-chart";
 import { BatchScheduleChart } from "@/components/batch-schedule-chart";
 import { MixedBedDependencyChart } from "@/components/mixed-bed-dependency-chart";
 import { CommitmentsAgingChart } from "@/components/commitments-aging-chart";
-import { BatchDueDateHeatmap } from "@/components/batch-due-date-heatmap";
 import { PlantStreamHeatmap } from "@/components/plant-stream-heatmap";
+import { PlanAchievementHeatmap } from "@/components/plan-achievement-heatmap";
 import { RadialGaugeChart } from "@/components/radial-gauge-chart";
 import { OverviewInsights } from "@/components/overview-insights";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -50,7 +50,6 @@ export default async function OverviewPage() {
     outputByPlant,
     batchesSchedule,
     commitmentsAging,
-    batchDueDates,
     capacityByPlantAndStream,
   } = data;
   const attainmentPct = output.planned > 0 ? (output.actual / output.planned) * 100 : null;
@@ -230,13 +229,13 @@ export default async function OverviewPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Batch Due-Date Load</CardTitle>
+            <CardTitle>Plan Achievement by Day</CardTitle>
             <CardDescription>
-              Batches due per day this month — spot clustering before it becomes a bottleneck.
+              Each day&apos;s output vs its target pace.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <BatchDueDateHeatmap data={batchDueDates} />
+            <PlanAchievementHeatmap data={dailyTrend} />
           </CardContent>
         </Card>
         <Card>
