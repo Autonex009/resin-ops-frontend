@@ -81,7 +81,7 @@ export default function ImportPage() {
               <CardTitle>Plant Capacity Master</CardTitle>
               <CardDescription>
                 Source of truth for what can be produced, where, and how much. Column names are
-                an Autonex-proposed template — confirm against Thermax&apos;s actual file before
+                an Autonex-proposed template — confirm against the client&apos;s actual file before
                 first real import.
               </CardDescription>
             </CardHeader>
@@ -109,7 +109,7 @@ export default function ImportPage() {
               <CardTitle>Daily Output</CardTitle>
               <CardDescription>
                 Actual production per plant, stream and day. Column names are an
-                Autonex-proposed template — confirm against Thermax&apos;s actual file before
+                Autonex-proposed template — confirm against the client&apos;s actual file before
                 first real import.
               </CardDescription>
             </CardHeader>
@@ -128,7 +128,7 @@ export default function ImportPage() {
             <CardHeader>
               <CardTitle>Planning-Capacity Master</CardTitle>
               <CardDescription>
-                Thermax&apos;s real per-plant planning export (one sheet per plant, wide
+                The client&apos;s real per-plant planning export (one sheet per plant, wide
                 per-shift/per-day layout). There&apos;s no maximum-capacity column in this file,
                 so it feeds the production plan and daily output (Plan vs Actual) rather than
                 Capacity Utilization. Row 2 must hold the plant name, and row 4&apos;s first
