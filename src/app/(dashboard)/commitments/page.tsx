@@ -153,8 +153,8 @@ export default async function CommitmentsPage({
         <AlertTitle>Commitments Short uses a provisional rule</AlertTitle>
         <AlertDescription>
           The Sales Commitment file has no confirmed required-delivery-date field, so Required
-          Date is backfilled as order date + 21 days until Thermax confirms the real field or
-          lead time. This KPI also only flags commitments already past that date with balance
+          Date is backfilled as order date + 21 days until the real field or lead time is
+          confirmed. This KPI also only flags commitments already past that date with balance
           outstanding — it does not yet project risk from remaining capacity.
         </AlertDescription>
       </Alert>
