@@ -19,7 +19,7 @@ const ibmMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Resin Ops",
-  description: "Centralized production planning & monitoring platform for Thermax's ion exchange resin manufacturing.",
+  description: "Centralized production planning & monitoring platform for ion exchange resin manufacturing.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -44,7 +44,8 @@ export function AppSidebar() {
           </span>
           <div className="flex flex-col leading-none">
             <span className="text-sm font-semibold">Resin Ops</span>
-            <span className="text-xs text-muted-foreground">Thermax</span>
+            {/* Client name hidden while pitching to a different client — restore when back on Thermax. */}
+            {/* <span className="text-xs text-muted-foreground">Thermax</span> */}
           </div>
         </div>
       </SidebarHeader>
