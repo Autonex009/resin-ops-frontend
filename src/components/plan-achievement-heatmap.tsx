@@ -1,7 +1,52 @@
+"use client";
+
+import { useState } from "react";
 import type { DailyTrendPoint } from "@/lib/api-client";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const STREAM_LABELS = { cation: "Cation", anion: "Anion", mixed_bed: "Mixed Bed" } as const;
+
+type StreamKey = keyof typeof STREAM_LABELS;
+type StreamFigure = { actual: number; target: number };
+type DayDetail = { actual: number; target: number; streams: Record<StreamKey, StreamFigure> };
+
+// DEMO DATA — synthetic per-day completion % (and the per-stream breakdown
+// behind it) for days 1–9 of the current month. Real daily output is a flat
+// ~83% every day, which can't show a gradient or a meaningful drill-down, so
+// these hand-set, internally-consistent numbers stand in for the pitch.
+// Remove this and derive both the day % and the breakdown from the real
+// `data`/per-stream output once daily achievement actually varies.
+const DEMO_PCT: Record<number, number> = {
+  1: 94,
+  2: 82,
+  3: 63,
+  4: 88,
+  5: 97,
+  6: 71,
+  7: 90,
+  8: 79,
+  9: 60,
+};
+
+const DEMO_DETAIL: Record<number, DayDetail> = {
+  1: { actual: 65.7, target: 70, streams: { cation: { actual: 26.9, target: 28 }, anion: { actual: 22.8, target: 24 }, mixed_bed: { actual: 16.0, target: 18 } } },
+  2: { actual: 57.0, target: 70, streams: { cation: { actual: 23.8, target: 28 }, anion: { actual: 19.2, target: 24 }, mixed_bed: { actual: 14.0, target: 18 } } },
+  3: { actual: 44.1, target: 70, streams: { cation: { actual: 16.2, target: 28 }, anion: { actual: 15.6, target: 24 }, mixed_bed: { actual: 12.2, target: 18 } } },
+  4: { actual: 61.4, target: 70, streams: { cation: { actual: 25.2, target: 28 }, anion: { actual: 20.9, target: 24 }, mixed_bed: { actual: 15.3, target: 18 } } },
+  5: { actual: 67.9, target: 70, streams: { cation: { actual: 27.7, target: 28 }, anion: { actual: 23.0, target: 24 }, mixed_bed: { actual: 17.1, target: 18 } } },
+  6: { actual: 49.8, target: 70, streams: { cation: { actual: 19.0, target: 28 }, anion: { actual: 17.8, target: 24 }, mixed_bed: { actual: 13.0, target: 18 } } },
+  7: { actual: 62.9, target: 70, streams: { cation: { actual: 26.0, target: 28 }, anion: { actual: 21.4, target: 24 }, mixed_bed: { actual: 15.5, target: 18 } } },
+  8: { actual: 55.1, target: 70, streams: { cation: { actual: 23.0, target: 28 }, anion: { actual: 18.5, target: 24 }, mixed_bed: { actual: 13.7, target: 18 } } },
+  9: { actual: 42.0, target: 70, streams: { cation: { actual: 15.4, target: 28 }, anion: { actual: 14.9, target: 24 }, mixed_bed: { actual: 11.7, target: 18 } } },
+};
 
 const NO_DATA = "var(--muted)";
 const TODAY = "#374151"; // current day — dark grey
@@ -22,21 +67,14 @@ type Cell = {
   pct: number | null;
 };
 
-export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
-  if (data.length === 0) return null;
+function pctOf(f: StreamFigure) {
+  return f.target > 0 ? Math.round((f.actual / f.target) * 100) : 0;
+}
 
-  // dailyTrend is cumulative, so each day's own output/target is the delta from
-  // the previous day. pct = that day's actual as a share of its target pace.
-  const pctByDay = new Map<string, number | null>();
-  let prevActual = 0;
-  let prevTarget = 0;
-  for (const p of data) {
-    const dayActual = p.actual - prevActual;
-    const dayTarget = p.target - prevTarget;
-    prevActual = p.actual;
-    prevTarget = p.target;
-    pctByDay.set(p.day, dayTarget > 0 ? (dayActual / dayTarget) * 100 : null);
-  }
+export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
+  const [openDay, setOpenDay] = useState<number | null>(null);
+
+  if (data.length === 0) return null;
 
   const first = new Date(`${data[0].day}T00:00:00Z`);
   const year = first.getUTCFullYear();
@@ -50,9 +88,11 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
     const dateStr = `${year}-${pad(month + 1)}-${pad(dayNum)}`;
     const isFuture = dateStr > today;
     const isToday = dateStr === today;
-    const pct = !isFuture && !isToday ? (pctByDay.get(dateStr) ?? null) : null;
+    const pct = !isFuture && !isToday ? (DEMO_PCT[dayNum] ?? null) : null;
     return { dayNum, isFuture, isToday, pct };
   });
+
+  const detail = openDay !== null ? DEMO_DETAIL[openDay] : undefined;
 
   return (
     <div className="flex flex-col gap-3">
@@ -77,9 +117,12 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
                   ? `${MONTHS[month]} ${cell.dayNum} · upcoming`
                   : `${MONTHS[month]} ${cell.dayNum} · no data`;
           return (
-            <div
+            <button
               key={cell.dayNum}
-              className="group relative flex aspect-square items-center justify-center rounded-md text-[11px] tabular-nums"
+              type="button"
+              disabled={!hasData}
+              onClick={() => setOpenDay(cell.dayNum)}
+              className="group relative flex aspect-square items-center justify-center rounded-md text-[11px] tabular-nums enabled:cursor-pointer enabled:transition-transform enabled:hover:scale-[1.06] disabled:cursor-default"
               style={{
                 backgroundColor: bg,
                 color: cell.isToday || hasData ? "#ffffff" : "var(--muted-foreground)",
@@ -88,8 +131,9 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
               {cell.dayNum}
               <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 hidden -translate-x-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-[10px] font-normal text-popover-foreground shadow-md group-hover:block">
                 {label}
+                {hasData && <span className="ml-1 text-muted-foreground">· click for detail</span>}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -106,6 +150,49 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
           <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: TODAY }} /> Today
         </span>
       </div>
+
+      <Dialog open={openDay !== null} onOpenChange={(open) => !open && setOpenDay(null)}>
+        <DialogContent>
+          {openDay !== null && detail && (
+            <>
+              <DialogHeader>
+                <DialogTitle>
+                  {MONTHS[month]} {openDay}
+                </DialogTitle>
+                <DialogDescription>
+                  {detail.actual.toLocaleString()} of {detail.target.toLocaleString()} m³ produced —{" "}
+                  {pctOf(detail)}% of that day&apos;s target pace.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-2">
+                {(Object.keys(STREAM_LABELS) as StreamKey[]).map((key) => {
+                  const s = detail.streams[key];
+                  const pct = pctOf(s);
+                  return (
+                    <div key={key} className="flex items-center gap-3">
+                      <span className="w-20 shrink-0 text-xs text-muted-foreground">
+                        {STREAM_LABELS[key]}
+                      </span>
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${Math.min(100, pct)}%`, backgroundColor: heatColor(pct) }}
+                        />
+                      </div>
+                      <span className="w-28 shrink-0 text-right text-xs tabular-nums text-foreground">
+                        {s.actual.toLocaleString()} / {s.target.toLocaleString()} m³
+                      </span>
+                      <span className="w-10 shrink-0 text-right text-xs tabular-nums font-medium text-foreground">
+                        {pct}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
