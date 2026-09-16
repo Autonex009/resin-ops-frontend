@@ -19,11 +19,12 @@ type StreamFigure = { actual: number; target: number };
 type DayDetail = { actual: number; target: number; streams: Record<StreamKey, StreamFigure> };
 
 // DEMO DATA — synthetic per-day completion % (and the per-stream breakdown
-// behind it) for days 1–9 of the current month. Real daily output is a flat
-// ~83% every day, which can't show a gradient or a meaningful drill-down, so
-// these hand-set, internally-consistent numbers stand in for the pitch.
-// Remove this and derive both the day % and the breakdown from the real
-// `data`/per-stream output once daily achievement actually varies.
+// behind it) through day 16 of the current month, so the calendar reads as
+// fully populated up to today with no "no data" gap. Real daily output is a
+// flat ~83% every day, which can't show a gradient or a meaningful
+// drill-down, so these hand-set, internally-consistent numbers stand in for
+// the pitch. Remove this and derive both the day % and the breakdown from
+// the real `data`/per-stream output once daily achievement actually varies.
 const DEMO_PCT: Record<number, number> = {
   1: 94,
   2: 82,
@@ -34,6 +35,13 @@ const DEMO_PCT: Record<number, number> = {
   7: 90,
   8: 79,
   9: 60,
+  10: 85,
+  11: 72,
+  12: 91,
+  13: 68,
+  14: 96,
+  15: 80,
+  16: 88,
 };
 
 const DEMO_DETAIL: Record<number, DayDetail> = {
@@ -46,6 +54,13 @@ const DEMO_DETAIL: Record<number, DayDetail> = {
   7: { actual: 62.9, target: 70, streams: { cation: { actual: 26.0, target: 28 }, anion: { actual: 21.4, target: 24 }, mixed_bed: { actual: 15.5, target: 18 } } },
   8: { actual: 55.1, target: 70, streams: { cation: { actual: 23.0, target: 28 }, anion: { actual: 18.5, target: 24 }, mixed_bed: { actual: 13.7, target: 18 } } },
   9: { actual: 42.0, target: 70, streams: { cation: { actual: 15.4, target: 28 }, anion: { actual: 14.9, target: 24 }, mixed_bed: { actual: 11.7, target: 18 } } },
+  10: { actual: 59.6, target: 70, streams: { cation: { actual: 24.6, target: 28 }, anion: { actual: 20.2, target: 24 }, mixed_bed: { actual: 14.8, target: 18 } } },
+  11: { actual: 50.4, target: 70, streams: { cation: { actual: 21.0, target: 28 }, anion: { actual: 16.8, target: 24 }, mixed_bed: { actual: 12.6, target: 18 } } },
+  12: { actual: 63.4, target: 70, streams: { cation: { actual: 26.0, target: 28 }, anion: { actual: 21.6, target: 24 }, mixed_bed: { actual: 15.8, target: 18 } } },
+  13: { actual: 47.6, target: 70, streams: { cation: { actual: 18.2, target: 28 }, anion: { actual: 16.8, target: 24 }, mixed_bed: { actual: 12.6, target: 18 } } },
+  14: { actual: 67.1, target: 70, streams: { cation: { actual: 27.4, target: 28 }, anion: { actual: 22.8, target: 24 }, mixed_bed: { actual: 16.9, target: 18 } } },
+  15: { actual: 56.0, target: 70, streams: { cation: { actual: 23.0, target: 28 }, anion: { actual: 19.0, target: 24 }, mixed_bed: { actual: 14.0, target: 18 } } },
+  16: { actual: 61.5, target: 70, streams: { cation: { actual: 25.8, target: 28 }, anion: { actual: 20.6, target: 24 }, mixed_bed: { actual: 15.1, target: 18 } } },
 };
 
 const NO_DATA = "var(--muted)";
