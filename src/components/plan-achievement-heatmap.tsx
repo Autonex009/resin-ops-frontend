@@ -3,22 +3,6 @@ import type { DailyTrendPoint } from "@/lib/api-client";
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-// DEMO DATA — synthetic per-day completion % for days 1–9 of the current month.
-// The real daily output is a flat ~83% every day, which can't show a gradient,
-// so these hand-set values give the green→yellow→red spread for the demo.
-// Remove this and colour from the real `data` once daily achievement varies.
-const DEMO_PCT: Record<number, number> = {
-  1: 94,
-  2: 82,
-  3: 63,
-  4: 88,
-  5: 97,
-  6: 71,
-  7: 90,
-  8: 79,
-  9: 60,
-};
-
 const NO_DATA = "var(--muted)";
 const TODAY = "#374151"; // current day — dark grey
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -41,6 +25,19 @@ type Cell = {
 export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
   if (data.length === 0) return null;
 
+  // dailyTrend is cumulative, so each day's own output/target is the delta from
+  // the previous day. pct = that day's actual as a share of its target pace.
+  const pctByDay = new Map<string, number | null>();
+  let prevActual = 0;
+  let prevTarget = 0;
+  for (const p of data) {
+    const dayActual = p.actual - prevActual;
+    const dayTarget = p.target - prevTarget;
+    prevActual = p.actual;
+    prevTarget = p.target;
+    pctByDay.set(p.day, dayTarget > 0 ? (dayActual / dayTarget) * 100 : null);
+  }
+
   const first = new Date(`${data[0].day}T00:00:00Z`);
   const year = first.getUTCFullYear();
   const month = first.getUTCMonth();
@@ -53,7 +50,7 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
     const dateStr = `${year}-${pad(month + 1)}-${pad(dayNum)}`;
     const isFuture = dateStr > today;
     const isToday = dateStr === today;
-    const pct = !isFuture && !isToday ? (DEMO_PCT[dayNum] ?? null) : null;
+    const pct = !isFuture && !isToday ? (pctByDay.get(dateStr) ?? null) : null;
     return { dayNum, isFuture, isToday, pct };
   });
 
