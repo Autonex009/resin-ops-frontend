@@ -19,31 +19,11 @@ type StreamFigure = { actual: number; target: number };
 type DayDetail = { actual: number; target: number; streams: Record<StreamKey, StreamFigure> };
 
 // DEMO DATA — synthetic per-day completion % (and the per-stream breakdown
-// behind it) through day 16 of the current month, so the calendar reads as
-// fully populated up to today with no "no data" gap. Real daily output is a
-// flat ~83% every day, which can't show a gradient or a meaningful
-// drill-down, so these hand-set, internally-consistent numbers stand in for
-// the pitch. Remove this and derive both the day % and the breakdown from
-// the real `data`/per-stream output once daily achievement actually varies.
-const DEMO_PCT: Record<number, number> = {
-  1: 94,
-  2: 82,
-  3: 63,
-  4: 88,
-  5: 97,
-  6: 71,
-  7: 90,
-  8: 79,
-  9: 60,
-  10: 85,
-  11: 72,
-  12: 91,
-  13: 68,
-  14: 96,
-  15: 80,
-  16: 88,
-};
-
+// behind it), hand-set for days 1–16 of the current month. Real daily output
+// is a flat ~83% every day, which can't show a gradient or a meaningful
+// drill-down, so these numbers stand in for the pitch. Remove this and the
+// generator below, deriving both the day % and the breakdown from the real
+// `data`/per-stream output, once daily achievement actually varies.
 const DEMO_DETAIL: Record<number, DayDetail> = {
   1: { actual: 65.7, target: 70, streams: { cation: { actual: 26.9, target: 28 }, anion: { actual: 22.8, target: 24 }, mixed_bed: { actual: 16.0, target: 18 } } },
   2: { actual: 57.0, target: 70, streams: { cation: { actual: 23.8, target: 28 }, anion: { actual: 19.2, target: 24 }, mixed_bed: { actual: 14.0, target: 18 } } },
@@ -62,6 +42,38 @@ const DEMO_DETAIL: Record<number, DayDetail> = {
   15: { actual: 56.0, target: 70, streams: { cation: { actual: 23.0, target: 28 }, anion: { actual: 19.0, target: 24 }, mixed_bed: { actual: 14.0, target: 18 } } },
   16: { actual: 61.5, target: 70, streams: { cation: { actual: 25.8, target: 28 }, anion: { actual: 20.6, target: 24 }, mixed_bed: { actual: 15.1, target: 18 } } },
 };
+
+const STREAM_TARGETS: Record<StreamKey, number> = { cation: 28, anion: 24, mixed_bed: 18 };
+
+// Deterministic pseudo-random in [0, 1) from an integer seed — same seed
+// always produces the same value, so a day's generated figures never change
+// across re-renders (no Math.random()/Date.now(), which would).
+function hash01(seed: number) {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+// Fallback for any elapsed day past the hand-authored DEMO_DETAIL table, so
+// the calendar keeps filling in on its own as the pitch runs past day 16
+// without needing another manual edit here.
+function generatedDetail(day: number): DayDetail {
+  const base = 58 + hash01(day * 3.7) * 40; // day-level center, 58-98
+  const keys = Object.keys(STREAM_TARGETS) as StreamKey[];
+  const streams = {} as Record<StreamKey, StreamFigure>;
+  keys.forEach((key, i) => {
+    const jitter = (hash01(day * 13.1 + i * 7.9) - 0.5) * 24; // ±12
+    const pct = Math.max(15, Math.min(105, base + jitter));
+    const target = STREAM_TARGETS[key];
+    streams[key] = { actual: Math.round(target * (pct / 100) * 10) / 10, target };
+  });
+  const target = keys.reduce((sum, k) => sum + STREAM_TARGETS[k], 0);
+  const actual = Math.round(keys.reduce((sum, k) => sum + streams[k].actual, 0) * 10) / 10;
+  return { actual, target, streams };
+}
+
+function detailFor(day: number): DayDetail {
+  return DEMO_DETAIL[day] ?? generatedDetail(day);
+}
 
 const NO_DATA = "var(--muted)";
 const TODAY = "#374151"; // current day — dark grey
@@ -103,11 +115,11 @@ export function PlanAchievementHeatmap({ data }: { data: DailyTrendPoint[] }) {
     const dateStr = `${year}-${pad(month + 1)}-${pad(dayNum)}`;
     const isFuture = dateStr > today;
     const isToday = dateStr === today;
-    const pct = !isFuture && !isToday ? (DEMO_PCT[dayNum] ?? null) : null;
+    const pct = !isFuture && !isToday ? pctOf(detailFor(dayNum)) : null;
     return { dayNum, isFuture, isToday, pct };
   });
 
-  const detail = openDay !== null ? DEMO_DETAIL[openDay] : undefined;
+  const detail = openDay !== null ? detailFor(openDay) : undefined;
 
   return (
     <div className="flex flex-col gap-3">
