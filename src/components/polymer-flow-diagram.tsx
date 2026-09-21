@@ -326,8 +326,9 @@ export function PolymerFlowDiagram() {
               <line x1={827} y1={248} x2={827} y2={418} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* F1 cone -> filtrate box */}
               <line x1={647} y1={345} x2={647} y2={458} markerEnd={`url(#${arrowId}-arrow)`} />
-              {/* CW into R1 */}
+              {/* CW into R1 (jacket in on the right, out on the left) */}
               <line x1={470} y1={305} x2={445} y2={290} markerEnd={`url(#${arrowId}-arrow)`} />
+              <line x1={355} y1={290} x2={330} y2={305} markerEnd={`url(#${arrowId}-arrow)`} />
             </g>
 
             {[
@@ -349,10 +350,10 @@ export function PolymerFlowDiagram() {
               <line x1={385} y1={188} x2={415} y2={205} />
               <line x1={385} y1={200} x2={402} y2={205} />
               <line x1={400} y1={205} x2={400} y2={238} />
-              <path d="M385,257 L415,277 M415,257 L385,277" strokeLinecap="round" />
+              {/* bowtie kneader rotor */}
+              <path d="M400,267 L372,250 L372,284 Z M400,267 L428,250 L428,284 Z" strokeLinejoin="round" />
             </g>
             <circle cx={430} cy={352} r={14} className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5} />
-            <line x1={430} y1={338} x2={430} y2={325} className="stroke-[#16a34a]" strokeWidth={1.5} />
             <text x={430} y={356} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-[#16a34a]">
               R1
             </text>
@@ -367,9 +368,11 @@ export function PolymerFlowDiagram() {
               style={{ fill: "color-mix(in oklch, var(--warning) 14%, var(--card))" }}
             />
             <path
-              d="M822,90 L868,90 M845,67 L845,113 M829,74 L861,106 M861,74 L829,106"
+              d="M825,68 L865,80 L825,102 L865,114"
               className="stroke-foreground"
-              strokeWidth={1}
+              strokeWidth={1.5}
+              fill="none"
+              strokeLinejoin="round"
             />
             <circle
               cx={845}
@@ -379,7 +382,6 @@ export function PolymerFlowDiagram() {
               strokeWidth={1.5}
               style={{ fill: "color-mix(in oklch, var(--warning) 14%, var(--card))" }}
             />
-            <line x1={845} y1={53} x2={845} y2={60} className="stroke-warning" strokeWidth={1.5} />
             <text x={845} y={44} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-warning">
               H1
             </text>
@@ -404,9 +406,11 @@ export function PolymerFlowDiagram() {
               strokeDasharray="5 4"
             />
             <path
-              d="M846,165 L894,165 M870,141 L870,189 M853,148 L887,182 M887,148 L853,182"
+              d="M854,147 L886,157 L854,175 L886,184"
               className="stroke-destructive"
-              strokeWidth={1}
+              strokeWidth={1.5}
+              fill="none"
+              strokeLinejoin="round"
               opacity={0.6}
             />
             {/* closed-valve glyph on the isolated feed line */}
@@ -423,12 +427,11 @@ export function PolymerFlowDiagram() {
 
             {/* F1 vacuum filter vessel */}
             <g className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5}>
-              <rect x={605} y={215} width={85} height={90} rx={4} />
+              <rect x={605} y={215} width={85} height={90} />
               <path d="M605,305 L690,305 L647,345 Z" />
               <circle cx={647} cy={258} r={20} fill="none" />
             </g>
             <circle cx={735} cy={195} r={14} className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5} />
-            <line x1={721} y1={202} x2={700} y2={215} className="stroke-[#16a34a]" strokeWidth={1.5} />
             <text x={735} y={199} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-[#16a34a]">
               F1
             </text>
