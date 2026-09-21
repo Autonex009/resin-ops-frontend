@@ -370,11 +370,10 @@ export function PolymerFlowDiagram() {
               style={{ fill: "color-mix(in oklch, var(--warning) 14%, var(--card))" }}
             />
             <path
-              d="M825,68 L865,80 L825,102 L865,114"
+              d="M822,71 L857,71 L828,90 L857,109 L822,109"
               className="stroke-foreground"
               strokeWidth={1.5}
               fill="none"
-              strokeLinejoin="round"
             />
             <circle
               cx={845}
@@ -408,11 +407,10 @@ export function PolymerFlowDiagram() {
               strokeDasharray="5 4"
             />
             <path
-              d="M854,147 L886,157 L854,175 L886,184"
+              d="M851,150 L879,150 L856,165 L879,181 L851,181"
               className="stroke-destructive"
               strokeWidth={1.5}
               fill="none"
-              strokeLinejoin="round"
               opacity={0.6}
             />
             {/* closed-valve glyph on the isolated feed line */}
