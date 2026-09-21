@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+const HISTORY_LENGTH = 20;
 
 // Streams and temps are tagged with the equipment stage they belong to, so
 // their accent color reads as a status: green = running healthy (reactor,
@@ -91,7 +95,7 @@ const STREAMS: StreamBox[] = [
   },
   {
     id: "wash-water",
-    title: "Wash water (H1)",
+    title: "Water (H1)",
     x: 590,
     y: 8,
     w: 110,
@@ -183,6 +187,10 @@ function streamTotal(id: string, values: Record<string, Record<number, number>>)
   return s.rows.reduce((sum, r, i) => sum + (r.trace ? 0 : rowValues[i] ?? r.base), 0);
 }
 
+function baseTotal(s: StreamBox) {
+  return s.rows.reduce((sum, r) => sum + (r.trace ? 0 : r.base), 0);
+}
+
 function metricsFor(
   id: EquipmentId,
   values: Record<string, Record<number, number>>,
@@ -247,12 +255,22 @@ export function PolymerFlowDiagram() {
   );
   const [selected, setSelected] = useState<EquipmentId | null>(null);
   const activeEquipment = EQUIPMENT.find((eq) => eq.id === selected) ?? null;
+  const [selectedStream, setSelectedStream] = useState<string | null>(null);
+  const activeStream = STREAMS.find((s) => s.id === selectedStream) ?? null;
+  const [history, setHistory] = useState<Record<string, number[]>>(() =>
+    Object.fromEntries(STREAMS.map((s) => [s.id, [baseTotal(s)]])),
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setValues(() => {
-        const next: Record<string, Record<number, number>> = {};
-        for (const s of STREAMS) next[s.id] = jitteredRows(s.rows);
+      const nextValues: Record<string, Record<number, number>> = {};
+      for (const s of STREAMS) nextValues[s.id] = jitteredRows(s.rows);
+      setValues(nextValues);
+      setHistory((prev) => {
+        const next: Record<string, number[]> = {};
+        for (const s of STREAMS) {
+          next[s.id] = [...(prev[s.id] ?? []), streamTotal(s.id, nextValues)].slice(-HISTORY_LENGTH);
+        }
         return next;
       });
       setTemps(() =>
@@ -274,7 +292,7 @@ export function PolymerFlowDiagram() {
           <CardTitle>Polymer Reactor → Filtration Line</CardTitle>
           <CardDescription>
             Live mass balance across R1 (polymer reactor), H1 (wash-water heater) and F1 (vacuum filter).
-            Click a vessel for its live readings.
+            Click a vessel for its live readings, or a data table for its recent history.
           </CardDescription>
         </div>
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-foreground">
@@ -464,9 +482,13 @@ export function PolymerFlowDiagram() {
             const rowValues = values[s.id] ?? {};
             const total = s.rows.reduce((sum, r, i) => sum + (r.trace ? 0 : rowValues[i] ?? r.base), 0);
             return (
-              <div
+              <button
                 key={s.id}
-                className="absolute rounded-md border border-border px-2 py-1.5 shadow-sm"
+                type="button"
+                onClick={() => setSelectedStream(s.id)}
+                aria-label={`View ${s.title} history`}
+                title={`${s.title} — click for history`}
+                className="absolute cursor-pointer rounded-md border border-border px-2 py-1.5 text-left shadow-sm transition hover:shadow-md hover:brightness-95 focus-visible:outline-none dark:hover:brightness-110"
                 style={{
                   left: leftPct(s.x),
                   top: topPct(s.y),
@@ -501,7 +523,7 @@ export function PolymerFlowDiagram() {
                     <span className="ml-0.5 font-sans text-[9px] font-normal text-muted-foreground">kg</span>
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
 
@@ -599,6 +621,75 @@ export function PolymerFlowDiagram() {
                   </div>
                 ))}
               </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={selectedStream !== null} onOpenChange={(open) => !open && setSelectedStream(null)}>
+        <DialogContent className="sm:max-w-md">
+          {activeStream && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <span className={cn("size-2 shrink-0 rounded-full", STAGE_DOT_CLASS[activeStream.stage])} />
+                  {activeStream.title}
+                </DialogTitle>
+                <DialogDescription>Current composition and the recent total trend.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-2">
+                {activeStream.rows.map((r, i) => (
+                  <div key={r.label} className="rounded-md bg-muted/50 px-3 py-2">
+                    <div className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                      {r.label}
+                    </div>
+                    <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                      {r.trace ? "trace" : `${(values[activeStream.id]?.[i] ?? r.base).toLocaleString()} kg`}
+                    </div>
+                  </div>
+                ))}
+                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">Total</div>
+                  <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                    {streamTotal(activeStream.id, values).toLocaleString()} kg
+                  </div>
+                </div>
+              </div>
+              <ChartContainer
+                config={
+                  {
+                    total: { label: "Total (kg)", color: STAGE_VAR[activeStream.stage] },
+                  } satisfies ChartConfig
+                }
+                className="aspect-auto h-[140px] w-full"
+              >
+                <LineChart
+                  data={(history[activeStream.id] ?? []).map((v, i) => ({ i, total: v }))}
+                  margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="i" tickLine={false} axisLine={false} tick={false} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent indicator="dot" labelFormatter={() => "Reading"} />} />
+                  <Line
+                    dataKey="total"
+                    type="monotone"
+                    stroke="var(--color-total)"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ChartContainer>
+              <p className="text-[11px] text-muted-foreground">
+                Last {(history[activeStream.id] ?? []).length} simulated readings, ~2.5s apart.
+              </p>
             </>
           )}
         </DialogContent>
