@@ -142,9 +142,9 @@ const EQUIPMENT: EquipmentInfo[] = [
     id: "R1",
     name: "R1 — Polymer Reactor",
     role: "Batch-polymerizes acrylonitrile (AN) and water with catalyst, under agitation and cooling water (CW), then discharges the slurry to the vacuum filter.",
-    x: 335,
+    x: 315,
     y: 178,
-    w: 130,
+    w: 170,
     h: 195,
   },
   {
@@ -305,12 +305,12 @@ export function PolymerFlowDiagram() {
             <g style={{ stroke: "var(--muted-foreground)" }} strokeWidth={2} fill="none">
               {/* storage -> main feed pipe */}
               <line x1={105} y1={223} x2={105} y2={248} />
-              <line x1={0} y1={248} x2={345} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
+              <line x1={0} y1={248} x2={322} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* catalyst riser */}
               <line x1={220} y1={610} x2={220} y2={512} markerEnd={`url(#${arrowId}-arrow)`} />
               <line x1={220} y1={420} x2={220} y2={248} />
               {/* R1 outlet -> F1, with branch down to reactor-out box */}
-              <line x1={455} y1={248} x2={605} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
+              <line x1={478} y1={248} x2={605} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
               <line x1={530} y1={248} x2={530} y2={478} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* wash water box -> H1 -> down into F1 top */}
               <line x1={647} y1={66} x2={647} y2={90} />
@@ -326,9 +326,9 @@ export function PolymerFlowDiagram() {
               <line x1={827} y1={248} x2={827} y2={418} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* F1 cone -> filtrate box */}
               <line x1={647} y1={345} x2={647} y2={458} markerEnd={`url(#${arrowId}-arrow)`} />
-              {/* CW into R1 (jacket in on the right, out on the left) */}
-              <line x1={470} y1={305} x2={445} y2={290} markerEnd={`url(#${arrowId}-arrow)`} />
-              <line x1={355} y1={290} x2={330} y2={305} markerEnd={`url(#${arrowId}-arrow)`} />
+              {/* R1 flange ports: feed-in/return on the left, CW-in on the right */}
+              <line x1={322} y1={287} x2={297} y2={287} markerEnd={`url(#${arrowId}-arrow)`} />
+              <line x1={503} y1={287} x2={478} y2={287} markerEnd={`url(#${arrowId}-arrow)`} />
             </g>
 
             {[
@@ -341,17 +341,19 @@ export function PolymerFlowDiagram() {
               <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={4} style={{ fill: "var(--muted-foreground)" }} />
             ))}
 
-            {/* R1 reactor vessel */}
+            {/* R1 reactor vessel — cylindrical drum with side flanges */}
             <g className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5}>
-              <rect x={345} y={210} width={110} height={115} rx={6} />
+              <path d="M345,210 Q400,195 455,210 L455,325 Q400,340 345,325 Z" />
+              <rect x={322} y={235} width={23} height={65} />
+              <rect x={455} y={235} width={23} height={65} />
               <rect x={385} y={183} width={30} height={22} />
             </g>
             <g className="stroke-foreground" strokeWidth={1.5} fill="none">
-              <line x1={385} y1={188} x2={415} y2={205} />
-              <line x1={385} y1={200} x2={402} y2={205} />
+              <line x1={370} y1={190} x2={430} y2={190} />
+              <line x1={370} y1={199} x2={430} y2={199} />
               <line x1={400} y1={205} x2={400} y2={238} />
               {/* bowtie kneader rotor */}
-              <path d="M400,267 L372,250 L372,284 Z M400,267 L428,250 L428,284 Z" strokeLinejoin="round" />
+              <path d="M400,267 C388,255 372,255 372,267 C372,279 388,279 400,267 Z M400,267 C412,255 428,255 428,267 C428,279 412,279 400,267 Z" />
             </g>
             <circle cx={430} cy={352} r={14} className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5} />
             <text x={430} y={356} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-[#16a34a]">
@@ -439,7 +441,7 @@ export function PolymerFlowDiagram() {
             <g style={{ fill: "var(--muted-foreground)" }} fontSize={12}>
               <text x={5} y={238}>From storages</text>
               <text x={95} y={608}>From catalyst prep</text>
-              <text x={476} y={302}>CW</text>
+              <text x={508} y={303}>CW</text>
               <text x={882} y={128}>DM Water</text>
               <text x={886} y={238}>To dryer</text>
             </g>
