@@ -389,19 +389,19 @@ export function PolymerFlowDiagram() {
               cx={870}
               cy={165}
               r={24}
-              className="fill-muted stroke-muted-foreground"
+              className="fill-destructive/10 stroke-destructive"
               strokeWidth={1.5}
               strokeDasharray="5 4"
             />
             <path
               d="M846,165 L894,165 M870,141 L870,189 M853,148 L887,182 M887,148 L853,182"
-              className="stroke-muted-foreground"
+              className="stroke-destructive"
               strokeWidth={1}
               opacity={0.6}
             />
             {/* closed-valve glyph on the isolated feed line */}
-            <path d="M919,157 L937,165 L919,173 Z M937,157 L919,165 L937,173 Z" className="fill-muted-foreground" />
-            <text x={870} y={203} textAnchor="middle" fontSize={12} fontWeight={600} className="fill-muted-foreground">
+            <path d="M919,157 L937,165 L919,173 Z M937,157 L919,165 L937,173 Z" className="fill-destructive" />
+            <text x={870} y={203} textAnchor="middle" fontSize={12} fontWeight={600} className="fill-destructive">
               H1B
             </text>
             <g className="fill-destructive">
