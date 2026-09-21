@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
+const HISTORY_LENGTH = 20;
 
 // Streams and temps are tagged with the equipment stage they belong to, so
 // their accent color reads as a status: green = running healthy (reactor,
@@ -91,7 +95,7 @@ const STREAMS: StreamBox[] = [
   },
   {
     id: "wash-water",
-    title: "Wash water (H1)",
+    title: "Water (H1)",
     x: 590,
     y: 8,
     w: 110,
@@ -142,9 +146,9 @@ const EQUIPMENT: EquipmentInfo[] = [
     id: "R1",
     name: "R1 — Polymer Reactor",
     role: "Batch-polymerizes acrylonitrile (AN) and water with catalyst, under agitation and cooling water (CW), then discharges the slurry to the vacuum filter.",
-    x: 335,
+    x: 315,
     y: 178,
-    w: 130,
+    w: 170,
     h: 195,
   },
   {
@@ -168,11 +172,11 @@ const EQUIPMENT: EquipmentInfo[] = [
   {
     id: "H1B",
     name: "H1B — Standby Water Heater",
-    role: "Redundant DM-water heater plumbed in parallel with H1, isolated at its inlet valve. Offline units like this stay on the monitored asset list so operations can see failover coverage at a glance.",
+    role: "Redundant DM-water heater plumbed in parallel with H1's outlet line, isolated at its own inlet valve. Offline units like this stay on the monitored asset list so operations can see failover coverage at a glance.",
     x: 800,
-    y: 138,
-    w: 170,
-    h: 100,
+    y: 136,
+    w: 140,
+    h: 112,
   },
 ];
 
@@ -181,6 +185,10 @@ function streamTotal(id: string, values: Record<string, Record<number, number>>)
   if (!s) return 0;
   const rowValues = values[id] ?? {};
   return s.rows.reduce((sum, r, i) => sum + (r.trace ? 0 : rowValues[i] ?? r.base), 0);
+}
+
+function baseTotal(s: StreamBox) {
+  return s.rows.reduce((sum, r) => sum + (r.trace ? 0 : r.base), 0);
 }
 
 function metricsFor(
@@ -247,12 +255,22 @@ export function PolymerFlowDiagram() {
   );
   const [selected, setSelected] = useState<EquipmentId | null>(null);
   const activeEquipment = EQUIPMENT.find((eq) => eq.id === selected) ?? null;
+  const [selectedStream, setSelectedStream] = useState<string | null>(null);
+  const activeStream = STREAMS.find((s) => s.id === selectedStream) ?? null;
+  const [history, setHistory] = useState<Record<string, number[]>>(() =>
+    Object.fromEntries(STREAMS.map((s) => [s.id, [baseTotal(s)]])),
+  );
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setValues(() => {
-        const next: Record<string, Record<number, number>> = {};
-        for (const s of STREAMS) next[s.id] = jitteredRows(s.rows);
+      const nextValues: Record<string, Record<number, number>> = {};
+      for (const s of STREAMS) nextValues[s.id] = jitteredRows(s.rows);
+      setValues(nextValues);
+      setHistory((prev) => {
+        const next: Record<string, number[]> = {};
+        for (const s of STREAMS) {
+          next[s.id] = [...(prev[s.id] ?? []), streamTotal(s.id, nextValues)].slice(-HISTORY_LENGTH);
+        }
         return next;
       });
       setTemps(() =>
@@ -274,7 +292,7 @@ export function PolymerFlowDiagram() {
           <CardTitle>Polymer Reactor → Filtration Line</CardTitle>
           <CardDescription>
             Live mass balance across R1 (polymer reactor), H1 (wash-water heater) and F1 (vacuum filter).
-            Click a vessel for its live readings.
+            Click a vessel for its live readings, or a data table for its recent history.
           </CardDescription>
         </div>
         <span className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs font-medium text-foreground">
@@ -305,12 +323,12 @@ export function PolymerFlowDiagram() {
             <g style={{ stroke: "var(--muted-foreground)" }} strokeWidth={2} fill="none">
               {/* storage -> main feed pipe */}
               <line x1={105} y1={223} x2={105} y2={248} />
-              <line x1={0} y1={248} x2={345} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
+              <line x1={0} y1={248} x2={322} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* catalyst riser */}
               <line x1={220} y1={610} x2={220} y2={512} markerEnd={`url(#${arrowId}-arrow)`} />
               <line x1={220} y1={420} x2={220} y2={248} />
               {/* R1 outlet -> F1, with branch down to reactor-out box */}
-              <line x1={455} y1={248} x2={605} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
+              <line x1={478} y1={248} x2={605} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
               <line x1={530} y1={248} x2={530} y2={478} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* wash water box -> H1 -> down into F1 top */}
               <line x1={647} y1={66} x2={647} y2={90} />
@@ -319,15 +337,16 @@ export function PolymerFlowDiagram() {
               {/* DM water feed into H1 */}
               <line x1={960} y1={90} x2={877} y2={90} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* standby DM water feed into H1B, isolated at its valve */}
-              <line x1={960} y1={165} x2={937} y2={165} strokeDasharray="5 4" />
-              <line x1={919} y1={165} x2={894} y2={165} strokeDasharray="5 4" />
+              <line x1={960} y1={165} x2={943} y2={165} strokeDasharray="5 4" />
+              <line x1={925} y1={165} x2={900} y2={165} strokeDasharray="5 4" />
               {/* F1 -> to dryer, with branch down to cake box */}
               <line x1={690} y1={248} x2={990} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
               <line x1={827} y1={248} x2={827} y2={418} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* F1 cone -> filtrate box */}
               <line x1={647} y1={345} x2={647} y2={458} markerEnd={`url(#${arrowId}-arrow)`} />
-              {/* CW into R1 */}
-              <line x1={470} y1={305} x2={445} y2={290} markerEnd={`url(#${arrowId}-arrow)`} />
+              {/* R1 flange ports: feed-in/return on the left, CW-in on the right */}
+              <line x1={322} y1={287} x2={297} y2={287} markerEnd={`url(#${arrowId}-arrow)`} />
+              <line x1={503} y1={287} x2={478} y2={287} markerEnd={`url(#${arrowId}-arrow)`} />
             </g>
 
             {[
@@ -340,19 +359,21 @@ export function PolymerFlowDiagram() {
               <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={4} style={{ fill: "var(--muted-foreground)" }} />
             ))}
 
-            {/* R1 reactor vessel */}
+            {/* R1 reactor vessel — cylindrical drum with side flanges */}
             <g className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5}>
-              <rect x={345} y={210} width={110} height={115} rx={6} />
+              <path d="M345,210 Q400,195 455,210 L455,325 Q400,340 345,325 Z" />
+              <rect x={322} y={235} width={23} height={65} />
+              <rect x={455} y={235} width={23} height={65} />
               <rect x={385} y={183} width={30} height={22} />
             </g>
             <g className="stroke-foreground" strokeWidth={1.5} fill="none">
-              <line x1={385} y1={188} x2={415} y2={205} />
-              <line x1={385} y1={200} x2={402} y2={205} />
+              <line x1={370} y1={190} x2={430} y2={190} />
+              <line x1={370} y1={199} x2={430} y2={199} />
               <line x1={400} y1={205} x2={400} y2={238} />
-              <path d="M385,257 L415,277 M415,257 L385,277" strokeLinecap="round" />
+              {/* bowtie kneader rotor */}
+              <path d="M400,267 C388,255 372,255 372,267 C372,279 388,279 400,267 Z M400,267 C412,255 428,255 428,267 C428,279 412,279 400,267 Z" />
             </g>
             <circle cx={430} cy={352} r={14} className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5} />
-            <line x1={430} y1={338} x2={430} y2={325} className="stroke-[#16a34a]" strokeWidth={1.5} />
             <text x={430} y={356} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-[#16a34a]">
               R1
             </text>
@@ -367,9 +388,10 @@ export function PolymerFlowDiagram() {
               style={{ fill: "color-mix(in oklch, var(--warning) 14%, var(--card))" }}
             />
             <path
-              d="M822,90 L868,90 M845,67 L845,113 M829,74 L861,106 M861,74 L829,106"
+              d="M822,71 L857,71 L828,90 L857,109 L822,109"
               className="stroke-foreground"
-              strokeWidth={1}
+              strokeWidth={1.5}
+              fill="none"
             />
             <circle
               cx={845}
@@ -379,7 +401,6 @@ export function PolymerFlowDiagram() {
               strokeWidth={1.5}
               style={{ fill: "color-mix(in oklch, var(--warning) 14%, var(--card))" }}
             />
-            <line x1={845} y1={53} x2={845} y2={60} className="stroke-warning" strokeWidth={1.5} />
             <text x={845} y={44} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-warning">
               H1
             </text>
@@ -394,41 +415,43 @@ export function PolymerFlowDiagram() {
               </text>
             </g>
 
-            {/* H1B standby heater — plumbed in parallel with H1, isolated (closed valve), offline */}
+            {/* H1B standby heater — same size as H1, plumbed in parallel off its outlet line, isolated (closed valve) on its own feed */}
+            <line x1={840} y1={165} x2={647} y2={165} className="stroke-destructive" strokeWidth={2} strokeDasharray="5 4" />
+            <circle cx={647} cy={165} r={4} className="fill-destructive" />
             <circle
               cx={870}
               cy={165}
-              r={24}
+              r={30}
               className="fill-destructive/10 stroke-destructive"
               strokeWidth={1.5}
               strokeDasharray="5 4"
             />
             <path
-              d="M846,165 L894,165 M870,141 L870,189 M853,148 L887,182 M887,148 L853,182"
+              d="M846,146 L881,146 L853,165 L881,185 L846,185"
               className="stroke-destructive"
-              strokeWidth={1}
+              strokeWidth={1.5}
+              fill="none"
               opacity={0.6}
             />
-            {/* closed-valve glyph on the isolated feed line */}
-            <path d="M919,157 L937,165 L919,173 Z M937,157 L919,165 L937,173 Z" className="fill-destructive" />
-            <text x={870} y={203} textAnchor="middle" fontSize={12} fontWeight={600} className="fill-destructive">
+            {/* closed-valve glyph on the isolated DM-water feed line */}
+            <path d="M925,157 L943,165 L925,173 Z M943,157 L925,165 L943,173 Z" className="fill-destructive" />
+            <text x={870} y={209} textAnchor="middle" fontSize={12} fontWeight={600} className="fill-destructive">
               H1B
             </text>
             <g className="fill-destructive">
-              <circle cx={849} cy={221} r={3} />
-              <text x={857} y={224} fontSize={10} fontWeight={600}>
+              <circle cx={849} cy={227} r={3} />
+              <text x={857} y={230} fontSize={10} fontWeight={600}>
                 Offline
               </text>
             </g>
 
             {/* F1 vacuum filter vessel */}
             <g className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5}>
-              <rect x={605} y={215} width={85} height={90} rx={4} />
+              <rect x={605} y={215} width={85} height={90} />
               <path d="M605,305 L690,305 L647,345 Z" />
               <circle cx={647} cy={258} r={20} fill="none" />
             </g>
             <circle cx={735} cy={195} r={14} className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5} />
-            <line x1={721} y1={202} x2={700} y2={215} className="stroke-[#16a34a]" strokeWidth={1.5} />
             <text x={735} y={199} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-[#16a34a]">
               F1
             </text>
@@ -436,9 +459,9 @@ export function PolymerFlowDiagram() {
             <g style={{ fill: "var(--muted-foreground)" }} fontSize={12}>
               <text x={5} y={238}>From storages</text>
               <text x={95} y={608}>From catalyst prep</text>
-              <text x={476} y={302}>CW</text>
+              <text x={508} y={303}>CW</text>
               <text x={882} y={128}>DM Water</text>
-              <text x={886} y={238}>To dryer</text>
+              <text x={928} y={238}>To dryer</text>
             </g>
           </svg>
 
@@ -461,9 +484,13 @@ export function PolymerFlowDiagram() {
             const rowValues = values[s.id] ?? {};
             const total = s.rows.reduce((sum, r, i) => sum + (r.trace ? 0 : rowValues[i] ?? r.base), 0);
             return (
-              <div
+              <button
                 key={s.id}
-                className="absolute rounded-md border border-border px-2 py-1.5 shadow-sm"
+                type="button"
+                onClick={() => setSelectedStream(s.id)}
+                aria-label={`View ${s.title} history`}
+                title={`${s.title} — click for history`}
+                className="absolute cursor-pointer rounded-md border border-border px-2 py-1.5 text-left shadow-sm transition hover:shadow-md hover:brightness-95 focus-visible:outline-none dark:hover:brightness-110"
                 style={{
                   left: leftPct(s.x),
                   top: topPct(s.y),
@@ -498,7 +525,7 @@ export function PolymerFlowDiagram() {
                     <span className="ml-0.5 font-sans text-[9px] font-normal text-muted-foreground">kg</span>
                   </span>
                 </div>
-              </div>
+              </button>
             );
           })}
 
@@ -531,6 +558,33 @@ export function PolymerFlowDiagram() {
               <div className="flex items-center gap-1.5">
                 <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.filter)} />
                 <span className="font-mono font-semibold">F1</span> Vacuum filter
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.standby)} />
+                <span className="font-mono font-semibold">H1B</span> Standby heater
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="absolute rounded-md border border-border bg-card/95 px-2.5 py-2 text-[11px] shadow-sm"
+            style={{ left: leftPct(888), top: topPct(345), width: leftPct(100) }}
+          >
+            <div className="mb-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase">
+              Status
+            </div>
+            <div className="space-y-1 text-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.reactor)} />
+                Running
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.heater)} />
+                Needs maintenance
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.standby)} />
+                Offline
               </div>
             </div>
           </div>
@@ -569,6 +623,75 @@ export function PolymerFlowDiagram() {
                   </div>
                 ))}
               </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={selectedStream !== null} onOpenChange={(open) => !open && setSelectedStream(null)}>
+        <DialogContent className="sm:max-w-md">
+          {activeStream && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <span className={cn("size-2 shrink-0 rounded-full", STAGE_DOT_CLASS[activeStream.stage])} />
+                  {activeStream.title}
+                </DialogTitle>
+                <DialogDescription>Current composition and the recent total trend.</DialogDescription>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-2">
+                {activeStream.rows.map((r, i) => (
+                  <div key={r.label} className="rounded-md bg-muted/50 px-3 py-2">
+                    <div className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                      {r.label}
+                    </div>
+                    <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                      {r.trace ? "trace" : `${(values[activeStream.id]?.[i] ?? r.base).toLocaleString()} kg`}
+                    </div>
+                  </div>
+                ))}
+                <div className="col-span-2 rounded-md bg-muted/50 px-3 py-2">
+                  <div className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">Total</div>
+                  <div className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                    {streamTotal(activeStream.id, values).toLocaleString()} kg
+                  </div>
+                </div>
+              </div>
+              <ChartContainer
+                config={
+                  {
+                    total: { label: "Total (kg)", color: STAGE_VAR[activeStream.stage] },
+                  } satisfies ChartConfig
+                }
+                className="aspect-auto h-[140px] w-full"
+              >
+                <LineChart
+                  data={(history[activeStream.id] ?? []).map((v, i) => ({ i, total: v }))}
+                  margin={{ left: 4, right: 8, top: 8, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="i" tickLine={false} axisLine={false} tick={false} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent indicator="dot" labelFormatter={() => "Reading"} />} />
+                  <Line
+                    dataKey="total"
+                    type="monotone"
+                    stroke="var(--color-total)"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4 }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ChartContainer>
+              <p className="text-[11px] text-muted-foreground">
+                Last {(history[activeStream.id] ?? []).length} simulated readings, ~2.5s apart.
+              </p>
             </>
           )}
         </DialogContent>
