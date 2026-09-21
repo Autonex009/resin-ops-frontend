@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 
 // Streams and temps are tagged with the equipment stage they belong to, so
 // their accent color ties back to the vessel that produces/handles them
-// (reactor = primary red, heater = warning amber, filter = neutral).
+// (reactor = green — a plain brand red read as a fault/alarm here since R1
+// is just running normally; heater = warning amber; filter = neutral).
 type Stage = "reactor" | "heater" | "filter" | "standby";
 type Row = { label: string; base: number; trace?: boolean };
 type StreamBox = { id: string; title: string; x: number; y: number; w: number; stage: Stage; rows: Row[] };
@@ -25,21 +26,22 @@ type Metric = { label: string; value: string; tone?: "destructive" };
 const VB_W = 1000;
 const VB_H = 620;
 
+const REACTOR_GREEN = "#16a34a";
 const STAGE_VAR: Record<Stage, string> = {
-  reactor: "var(--primary)",
+  reactor: REACTOR_GREEN,
   heater: "var(--warning)",
   filter: "var(--foreground)",
   standby: "var(--destructive)",
 };
 const STAGE_HOVER_CLASS: Record<Stage, string> = {
-  reactor: "hover:border-primary/40 hover:bg-primary/5 focus-visible:border-primary",
+  reactor: "hover:border-[#16a34a]/40 hover:bg-[#16a34a]/5 focus-visible:border-[#16a34a]",
   heater: "hover:border-warning/40 hover:bg-warning/5 focus-visible:border-warning",
   filter: "hover:border-foreground/30 hover:bg-foreground/5 focus-visible:border-foreground",
   standby: "hover:border-destructive/40 hover:bg-destructive/5 focus-visible:border-destructive",
 };
 const STAGE_FOR_EQUIPMENT: Record<EquipmentId, Stage> = { R1: "reactor", H1: "heater", F1: "filter", H1B: "standby" };
 const STAGE_DOT_CLASS: Record<Stage, string> = {
-  reactor: "bg-primary",
+  reactor: "bg-[#16a34a]",
   heater: "bg-warning",
   filter: "bg-foreground/70",
   standby: "bg-destructive",
@@ -339,7 +341,7 @@ export function PolymerFlowDiagram() {
             ))}
 
             {/* R1 reactor vessel */}
-            <g className="fill-accent stroke-primary" strokeWidth={1.5}>
+            <g className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5}>
               <rect x={345} y={210} width={110} height={115} rx={6} />
               <rect x={385} y={183} width={30} height={22} />
             </g>
@@ -349,9 +351,9 @@ export function PolymerFlowDiagram() {
               <line x1={400} y1={205} x2={400} y2={238} />
               <path d="M385,257 L415,277 M415,257 L385,277" strokeLinecap="round" />
             </g>
-            <circle cx={430} cy={352} r={14} className="fill-accent stroke-primary" strokeWidth={1.5} />
-            <line x1={430} y1={338} x2={430} y2={325} className="stroke-primary" strokeWidth={1.5} />
-            <text x={430} y={356} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-primary">
+            <circle cx={430} cy={352} r={14} className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5} />
+            <line x1={430} y1={338} x2={430} y2={325} className="stroke-[#16a34a]" strokeWidth={1.5} />
+            <text x={430} y={356} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-[#16a34a]">
               R1
             </text>
 
@@ -468,13 +470,23 @@ export function PolymerFlowDiagram() {
                   <div key={r.label} className="flex items-center justify-between gap-2 text-[11px] leading-tight">
                     <span className="text-muted-foreground">{r.label}</span>
                     <span className="font-mono tabular-nums text-foreground">
-                      {r.trace ? "trace" : (rowValues[i] ?? r.base).toLocaleString()}
+                      {r.trace ? (
+                        "trace"
+                      ) : (
+                        <>
+                          {(rowValues[i] ?? r.base).toLocaleString()}
+                          <span className="ml-0.5 font-sans text-[9px] font-normal text-muted-foreground">kg</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 ))}
                 <div className="mt-1 flex items-center justify-between gap-2 border-t border-border pt-1 text-[11px] leading-tight font-semibold">
                   <span>Total</span>
-                  <span className="font-mono tabular-nums">{total.toLocaleString()}</span>
+                  <span className="font-mono tabular-nums">
+                    {total.toLocaleString()}
+                    <span className="ml-0.5 font-sans text-[9px] font-normal text-muted-foreground">kg</span>
+                  </span>
                 </div>
               </div>
             );
