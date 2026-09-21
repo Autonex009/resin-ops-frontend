@@ -535,6 +535,33 @@ export function PolymerFlowDiagram() {
                 <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.filter)} />
                 <span className="font-mono font-semibold">F1</span> Vacuum filter
               </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.standby)} />
+                <span className="font-mono font-semibold">H1B</span> Standby heater
+              </div>
+            </div>
+          </div>
+
+          <div
+            className="absolute rounded-md border border-border bg-card/95 px-2.5 py-2 text-[11px] shadow-sm"
+            style={{ left: leftPct(888), top: topPct(345), width: leftPct(100) }}
+          >
+            <div className="mb-1 text-[9px] font-medium tracking-wide text-muted-foreground uppercase">
+              Status
+            </div>
+            <div className="space-y-1 text-foreground">
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.reactor)} />
+                Running
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.heater)} />
+                Needs maintenance
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={cn("size-1.5 shrink-0 rounded-full", STAGE_DOT_CLASS.standby)} />
+                Offline
+              </div>
             </div>
           </div>
         </div>
