@@ -29,7 +29,7 @@ const navItems = [
   { title: "Plan vs Actual", href: "/plan-vs-actual", icon: BarChart3 },
   { title: "Capacity Utilization", href: "/capacity", icon: Gauge },
   { title: "Batches", href: "/batches", icon: ListChecks },
-  { title: "Machine Monitors", href: "/machines", icon: Activity },
+  { title: "Machines Monitors", href: "/machines", icon: Activity },
   { title: "Commitments", href: "/commitments", icon: ClipboardList },
   { title: "Data Import", href: "/import", icon: Upload },
 ];
