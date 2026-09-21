@@ -12,38 +12,38 @@ import {
 import { cn } from "@/lib/utils";
 
 // Streams and temps are tagged with the equipment stage they belong to, so
-// their accent color ties back to the vessel that produces/handles them
-// (reactor = green — a plain brand red read as a fault/alarm here since R1
-// is just running normally; heater = warning amber; filter = neutral).
+// their accent color reads as a status: green = running healthy (reactor,
+// filter), amber = running but flagged for attention (heater), red = fault
+// / offline (standby).
 type Stage = "reactor" | "heater" | "filter" | "standby";
 type Row = { label: string; base: number; trace?: boolean };
 type StreamBox = { id: string; title: string; x: number; y: number; w: number; stage: Stage; rows: Row[] };
 type TempBadge = { id: string; base: number; x: number; y: number; stage: Stage };
 type EquipmentId = "R1" | "H1" | "F1" | "H1B";
 type EquipmentInfo = { id: EquipmentId; name: string; role: string; x: number; y: number; w: number; h: number };
-type Metric = { label: string; value: string; tone?: "destructive" };
+type Metric = { label: string; value: string; tone?: "destructive" | "warning" };
 
 const VB_W = 1000;
 const VB_H = 620;
 
-const REACTOR_GREEN = "#16a34a";
+const HEALTHY_GREEN = "#16a34a";
 const STAGE_VAR: Record<Stage, string> = {
-  reactor: REACTOR_GREEN,
+  reactor: HEALTHY_GREEN,
   heater: "var(--warning)",
-  filter: "var(--foreground)",
+  filter: HEALTHY_GREEN,
   standby: "var(--destructive)",
 };
 const STAGE_HOVER_CLASS: Record<Stage, string> = {
   reactor: "hover:border-[#16a34a]/40 hover:bg-[#16a34a]/5 focus-visible:border-[#16a34a]",
   heater: "hover:border-warning/40 hover:bg-warning/5 focus-visible:border-warning",
-  filter: "hover:border-foreground/30 hover:bg-foreground/5 focus-visible:border-foreground",
+  filter: "hover:border-[#16a34a]/40 hover:bg-[#16a34a]/5 focus-visible:border-[#16a34a]",
   standby: "hover:border-destructive/40 hover:bg-destructive/5 focus-visible:border-destructive",
 };
 const STAGE_FOR_EQUIPMENT: Record<EquipmentId, Stage> = { R1: "reactor", H1: "heater", F1: "filter", H1B: "standby" };
 const STAGE_DOT_CLASS: Record<Stage, string> = {
   reactor: "bg-[#16a34a]",
   heater: "bg-warning",
-  filter: "bg-foreground/70",
+  filter: "bg-[#16a34a]",
   standby: "bg-destructive",
 };
 
@@ -150,11 +150,11 @@ const EQUIPMENT: EquipmentInfo[] = [
   {
     id: "H1",
     name: "H1 — Water Heater",
-    role: "Heats incoming DM water to feed the hot-water wash on the F1 vacuum filter, displacing residual mother liquor from the polymer cake.",
-    x: 795,
-    y: 15,
-    w: 110,
-    h: 120,
+    role: "Heats incoming DM water to feed the hot-water wash on the F1 vacuum filter, displacing residual mother liquor from the polymer cake. Flagged for scheduled maintenance — still running, monitored closely until serviced.",
+    x: 790,
+    y: 5,
+    w: 130,
+    h: 130,
   },
   {
     id: "F1",
@@ -198,7 +198,7 @@ function metricsFor(
       ];
     case "H1":
       return [
-        { label: "Status", value: "Running" },
+        { label: "Status", value: "Needs Maintenance", tone: "warning" },
         { label: "DM Water In", value: "15.0°C" },
         { label: "Outlet Temp", value: `${(temps["wash-in"] ?? 60).toFixed(1)}°C` },
         { label: "Wash Water Flow", value: `${streamTotal("wash-water", values).toLocaleString()} kg` },
@@ -383,6 +383,16 @@ export function PolymerFlowDiagram() {
             <text x={845} y={44} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-warning">
               H1
             </text>
+            {/* maintenance notification */}
+            <g className="fill-warning">
+              <path d="M802,9 L809,21 L795,21 Z" strokeLinejoin="round" />
+              <text x={802} y={19} textAnchor="middle" fontSize={8} fontWeight={700} className="fill-warning-foreground">
+                !
+              </text>
+              <text x={815} y={19} fontSize={10} fontWeight={600}>
+                Needs maintenance
+              </text>
+            </g>
 
             {/* H1B standby heater — plumbed in parallel with H1, isolated (closed valve), offline */}
             <circle
@@ -412,14 +422,14 @@ export function PolymerFlowDiagram() {
             </g>
 
             {/* F1 vacuum filter vessel */}
-            <g className="fill-muted stroke-foreground" strokeWidth={1.5}>
+            <g className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5}>
               <rect x={605} y={215} width={85} height={90} rx={4} />
               <path d="M605,305 L690,305 L647,345 Z" />
               <circle cx={647} cy={258} r={20} fill="none" />
             </g>
-            <circle cx={735} cy={195} r={14} className="fill-muted stroke-foreground" strokeWidth={1.5} />
-            <line x1={721} y1={202} x2={700} y2={215} className="stroke-foreground" strokeWidth={1.5} />
-            <text x={735} y={199} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-foreground">
+            <circle cx={735} cy={195} r={14} className="fill-[#16a34a]/10 stroke-[#16a34a]" strokeWidth={1.5} />
+            <line x1={721} y1={202} x2={700} y2={215} className="stroke-[#16a34a]" strokeWidth={1.5} />
+            <text x={735} y={199} textAnchor="middle" fontSize={13} fontWeight={600} className="fill-[#16a34a]">
               F1
             </text>
 
@@ -549,7 +559,9 @@ export function PolymerFlowDiagram() {
                     <div
                       className={cn(
                         "font-mono text-sm font-semibold tabular-nums",
-                        m.tone === "destructive" ? "text-destructive" : "text-foreground",
+                        m.tone === "destructive" && "text-destructive",
+                        m.tone === "warning" && "text-warning",
+                        !m.tone && "text-foreground",
                       )}
                     >
                       {m.value}
