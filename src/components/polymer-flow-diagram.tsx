@@ -172,11 +172,11 @@ const EQUIPMENT: EquipmentInfo[] = [
   {
     id: "H1B",
     name: "H1B — Standby Water Heater",
-    role: "Redundant DM-water heater plumbed in parallel with H1, isolated at its inlet valve. Offline units like this stay on the monitored asset list so operations can see failover coverage at a glance.",
+    role: "Redundant DM-water heater plumbed in parallel with H1's outlet line, isolated at its own inlet valve. Offline units like this stay on the monitored asset list so operations can see failover coverage at a glance.",
     x: 800,
-    y: 138,
-    w: 170,
-    h: 100,
+    y: 136,
+    w: 140,
+    h: 112,
   },
 ];
 
@@ -337,8 +337,8 @@ export function PolymerFlowDiagram() {
               {/* DM water feed into H1 */}
               <line x1={960} y1={90} x2={877} y2={90} markerEnd={`url(#${arrowId}-arrow)`} />
               {/* standby DM water feed into H1B, isolated at its valve */}
-              <line x1={960} y1={165} x2={937} y2={165} strokeDasharray="5 4" />
-              <line x1={919} y1={165} x2={894} y2={165} strokeDasharray="5 4" />
+              <line x1={960} y1={165} x2={943} y2={165} strokeDasharray="5 4" />
+              <line x1={925} y1={165} x2={900} y2={165} strokeDasharray="5 4" />
               {/* F1 -> to dryer, with branch down to cake box */}
               <line x1={690} y1={248} x2={990} y2={248} markerEnd={`url(#${arrowId}-arrow)`} />
               <line x1={827} y1={248} x2={827} y2={418} markerEnd={`url(#${arrowId}-arrow)`} />
@@ -415,30 +415,32 @@ export function PolymerFlowDiagram() {
               </text>
             </g>
 
-            {/* H1B standby heater — plumbed in parallel with H1, isolated (closed valve), offline */}
+            {/* H1B standby heater — same size as H1, plumbed in parallel off its outlet line, isolated (closed valve) on its own feed */}
+            <line x1={840} y1={165} x2={647} y2={165} className="stroke-destructive" strokeWidth={2} strokeDasharray="5 4" />
+            <circle cx={647} cy={165} r={4} className="fill-destructive" />
             <circle
               cx={870}
               cy={165}
-              r={24}
+              r={30}
               className="fill-destructive/10 stroke-destructive"
               strokeWidth={1.5}
               strokeDasharray="5 4"
             />
             <path
-              d="M851,150 L879,150 L856,165 L879,181 L851,181"
+              d="M846,146 L881,146 L853,165 L881,185 L846,185"
               className="stroke-destructive"
               strokeWidth={1.5}
               fill="none"
               opacity={0.6}
             />
-            {/* closed-valve glyph on the isolated feed line */}
-            <path d="M919,157 L937,165 L919,173 Z M937,157 L919,165 L937,173 Z" className="fill-destructive" />
-            <text x={870} y={203} textAnchor="middle" fontSize={12} fontWeight={600} className="fill-destructive">
+            {/* closed-valve glyph on the isolated DM-water feed line */}
+            <path d="M925,157 L943,165 L925,173 Z M943,157 L925,165 L943,173 Z" className="fill-destructive" />
+            <text x={870} y={209} textAnchor="middle" fontSize={12} fontWeight={600} className="fill-destructive">
               H1B
             </text>
             <g className="fill-destructive">
-              <circle cx={849} cy={221} r={3} />
-              <text x={857} y={224} fontSize={10} fontWeight={600}>
+              <circle cx={849} cy={227} r={3} />
+              <text x={857} y={230} fontSize={10} fontWeight={600}>
                 Offline
               </text>
             </g>
@@ -459,7 +461,7 @@ export function PolymerFlowDiagram() {
               <text x={95} y={608}>From catalyst prep</text>
               <text x={508} y={303}>CW</text>
               <text x={882} y={128}>DM Water</text>
-              <text x={886} y={238}>To dryer</text>
+              <text x={928} y={238}>To dryer</text>
             </g>
           </svg>
 
